@@ -35,4 +35,7 @@ public class Fattura {
     @ManyToOne
     @JoinColumn(name = "oneri_id", nullable = false)
     private Oneri oneri;
+
+    @ManyToMany(mappedBy = "fatture")
+    private List<Lettura> letture;
 }

@@ -87,5 +87,8 @@ public class Fornitura {
             inverseJoinColumns = @JoinColumn(name = "fattura_id")
     )
     private List<Fattura> fatture;
+
+    @OneToMany(mappedBy = "fornitura")
+    private List<Lettura> letture;
 }
 
