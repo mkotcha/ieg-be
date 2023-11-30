@@ -11,10 +11,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -29,16 +26,17 @@ public class Utente implements UserDetails {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(unique = true)
     private String username;
     private String nome;
+    @Column(unique = true)
     private String email;
     private String cognome;
     private String urlAvatar;
     private String password;
-    @ManyToMany(mappedBy = "utenti")
+    @ManyToMany(mappedBy = "utenti", fetch = FetchType.EAGER)
     private Set<Ruolo> ruoli;
 
-    
     @CreationTimestamp
     private Date createdAt;
 
@@ -49,6 +47,7 @@ public class Utente implements UserDetails {
     }
 
     @Override
+
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return ruoli.stream()
                 .map(ruolo -> new SimpleGrantedAuthority(ruolo.getRuolo()))
@@ -82,4 +81,10 @@ public class Utente implements UserDetails {
     }
 
 
+    public void addRuolo(Ruolo ruolo) {
+        if (this.ruoli == null) {
+            this.ruoli = new HashSet<>();
+        }
+        this.ruoli.add(ruolo);
+    }
 }

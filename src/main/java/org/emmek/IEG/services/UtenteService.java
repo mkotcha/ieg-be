@@ -1,5 +1,6 @@
 package org.emmek.IEG.services;
 
+import jakarta.transaction.Transactional;
 import org.emmek.IEG.entities.Utente;
 import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.repositories.UtenteRepository;
@@ -43,5 +44,14 @@ public class UtenteService {
     public void findByIdAndDelete(UUID id) throws NotFoundException {
         Utente found = this.findById(id);
         utenteRepository.delete(found);
+    }
+
+    public void save(Utente user) {
+        utenteRepository.save(user);
+    }
+
+    @Transactional
+    public Utente findByUsername(String username) {
+        return utenteRepository.findByUsername(username).orElseThrow(() -> new NotFoundException("utente con username " + username + " non trovato"));
     }
 }
