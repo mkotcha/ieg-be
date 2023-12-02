@@ -31,9 +31,17 @@ public class Fornitura {
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
 
-    @ManyToOne
-    @JoinColumn(name = "indirizzo_id", nullable = false)
-    private Indirizzo indirizzo;
+    @Column(name = "indirizzo", nullable = false)
+    private String indirizzo;
+
+    @Column(name = "cap", nullable = false)
+    private int cap;
+
+    @Column(name = "comune", nullable = false)
+    private String comune;
+
+    @Column(name = "provincia", nullable = false)
+    private String provincia;
 
     @Column(name = "potenza_disponibile", nullable = false)
     private double potenzaDisponibile;

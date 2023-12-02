@@ -1,6 +1,9 @@
 package org.emmek.IEG.entities;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,9 +29,17 @@ public class Cliente {
     @Column(name = "CF", nullable = false)
     private String cf;
 
-    @ManyToOne
-    @JoinColumn(name = "indirizzo_id", nullable = false)
-    private Indirizzo indirizzo;
+    @Column(name = "indirizzo", nullable = false)
+    private String indirizzo;
+
+    @Column(name = "cap", nullable = false)
+    private int cap;
+
+    @Column(name = "comune", nullable = false)
+    private String comune;
+
+    @Column(name = "provincia", nullable = false)
+    private String provincia;
 
     @Column(name = "telefono", nullable = true)
     private String telefono;

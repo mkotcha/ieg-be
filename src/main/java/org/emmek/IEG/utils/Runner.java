@@ -3,13 +3,11 @@ package org.emmek.IEG.utils;
 
 import com.poiji.bind.Poiji;
 import org.emmek.IEG.entities.Cliente;
-import org.emmek.IEG.entities.Indirizzo;
 import org.emmek.IEG.entities.Ruolo;
 import org.emmek.IEG.entities.Utente;
 import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.helpers.ClienteModel;
 import org.emmek.IEG.services.ClienteService;
-import org.emmek.IEG.services.IndirizzoService;
 import org.emmek.IEG.services.RuoloService;
 import org.emmek.IEG.services.UtenteService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,10 +30,6 @@ public class Runner implements CommandLineRunner {
 
     @Autowired
     ClienteService clienteService;
-
-    @Autowired
-    IndirizzoService indirizzoService;
-
 
     @Value("${admin.username}")
     private String username;
@@ -90,13 +84,10 @@ public class Runner implements CommandLineRunner {
             cliente.setCf(clienteModel.getCf());
             cliente.setTelefono(clienteModel.getTelefono());
             cliente.setEmail(clienteModel.getEmail());
-            Indirizzo indirizzo = new Indirizzo();
-            indirizzo.setIndirizzo(clienteModel.getIndirizzo());
-            indirizzo.setCap(clienteModel.getCap());
-            indirizzo.setProvincia(clienteModel.getProvincia());
-            indirizzo.setComune(clienteModel.getComune());
-            indirizzoService.save(indirizzo);
-            cliente.setIndirizzo(indirizzo);
+            cliente.setIndirizzo(clienteModel.getIndirizzo());
+            cliente.setCap(clienteModel.getCap());
+            cliente.setProvincia(clienteModel.getProvincia());
+            cliente.setComune(clienteModel.getComune());
             clienteService.save(cliente);
         }
     }
