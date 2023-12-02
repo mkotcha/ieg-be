@@ -34,4 +34,4 @@ build/
 env.properties
 **/*.log*
 /data/**
-*.xlsx*
+*.xlsx
