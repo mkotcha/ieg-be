@@ -19,4 +19,8 @@ public class ClienteService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
         return clienteRepository.findAll(pageable);
     }
+
+    public void save(Cliente cliente) {
+        clienteRepository.save(cliente);
+    }
 }

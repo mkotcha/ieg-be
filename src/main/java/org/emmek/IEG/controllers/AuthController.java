@@ -22,6 +22,12 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @GetMapping("/login")
+    public String login() {
+        return "login";
+    }
+
+
     @PostMapping("login")
     public UtenteLoginSuccessDTO login(@RequestBody UtenteLoginDTO body) {
         return new UtenteLoginSuccessDTO(authService.autheticateUtente(body));

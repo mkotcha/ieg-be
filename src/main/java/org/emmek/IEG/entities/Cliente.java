@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.UUID;
-
 @Entity
 @Table(name = "clienti")
 @NoArgsConstructor
@@ -16,25 +14,25 @@ import java.util.UUID;
 @Setter
 public class Cliente {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
     @Column(name = "ragione_sociale", nullable = false)
     private String ragioneSociale;
 
-    @Column(name = "piva", nullable = false, unique = true)
-    private String piva;
+    @Column(name = "piva", nullable = false)
+    private String pIva;
 
-    @Column(name = "CF", nullable = false, unique = true)
-    private String CF;
+    @Column(name = "CF", nullable = false)
+    private String cf;
 
     @ManyToOne
     @JoinColumn(name = "indirizzo_id", nullable = false)
     private Indirizzo indirizzo;
 
-    @Column(name = "telefono", nullable = false)
+    @Column(name = "telefono", nullable = true)
     private String telefono;
 
-    @Column(name = "email", nullable = false)
+    @Column(name = "email", nullable = true)
     private String email;
 }
