@@ -61,7 +61,7 @@ public class Runner implements CommandLineRunner {
     public FlussoMisure unmarshal() throws JAXBException, IOException {
         JAXBContext context = JAXBContext.newInstance(FlussoMisure.class);
         return (FlussoMisure) context.createUnmarshaller()
-                .unmarshal(new FileReader("data/test.xml"));
+                .unmarshal(new FileReader("data/test_o.xml"));
     }
 
     private void crateAdminIfNotExist(String username) {

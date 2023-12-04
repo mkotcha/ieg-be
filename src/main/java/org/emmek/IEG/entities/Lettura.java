@@ -36,32 +36,42 @@ public class Lettura {
     @Column(name = "data_lettura", nullable = false)
     private LocalDate dataLettura;
 
-    @Column(name = "f1", nullable = false)
-    private double f1;
+    private String raccolta;
 
-    @Column(name = "f2", nullable = false)
-    private double f2;
+    private String tipoDato;
 
-    @Column(name = "f3", nullable = false)
-    private double f3;
+    private String causaOstativa;
 
-    @Column(name = "f1r", nullable = true)
-    private double f1r;
+    private String validato;
 
-    @Column(name = "f2r", nullable = true)
-    private double f2r;
+    private String potMax;
 
-    @Column(name = "f3r", nullable = true)
-    private double f3r;
+    @Column(name = "ea_f1", nullable = false)
+    private double eaF1;
 
-    @Column(name = "p1", nullable = true)
-    private double p1;
+    @Column(name = "ea_f2", nullable = false)
+    private double eaF2;
 
-    @Column(name = "p2", nullable = true)
-    private double p2;
+    @Column(name = "ea_f3", nullable = false)
+    private double eaF3;
 
-    @Column(name = "p3", nullable = true)
-    private double p3;
+    @Column(name = "er_f1", nullable = true)
+    private double erF1;
+
+    @Column(name = "er_f2", nullable = true)
+    private double erF2;
+
+    @Column(name = "er_f3", nullable = true)
+    private double erF3;
+
+    @Column(name = "pot_f1", nullable = true)
+    private double potF1;
+
+    @Column(name = "pot_f2", nullable = true)
+    private double potF2;
+
+    @Column(name = "pot_f3", nullable = true)
+    private double potF3;
 
     @ManyToOne
     @JoinColumn(name = "fornitura_id", nullable = false)
@@ -74,4 +84,7 @@ public class Lettura {
             inverseJoinColumns = @JoinColumn(name = "fattura_id")
     )
     private List<Fattura> fatture;
+
+    @OneToMany(mappedBy = "lettura")
+    private List<LetturaOraria> lettureOrarie;
 }

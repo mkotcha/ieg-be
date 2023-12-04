@@ -2,15 +2,19 @@ package org.emmek.IEG.helpers;
 
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import lombok.Setter;
 import lombok.ToString;
+
+import java.util.List;
 
 @XmlRootElement(name = "Misura")
 @ToString
+@Setter
 public class Misura {
     @XmlElement(name = "Raccolta")
-    public String raccolta;
+    private String raccolta;
     @XmlElement(name = "TipoDato")
-    public String tipoDato;
+    private String tipoDato;
     @XmlElement(name = "CausaOstativa")
     private String causaOstativa;
     @XmlElement(name = "Validato")
@@ -18,9 +22,9 @@ public class Misura {
     @XmlElement(name = "PotMax")
     private String potMax;
     @XmlElement(name = "Ea")
-    private MisuraOraria ea;
+    private List<MisuraOraria> ea;
     @XmlElement(name = "Er")
-    private MisuraOraria er;
+    private List<MisuraOraria> er;
     @XmlElement(name = "EaF1")
     private String eaF1;
     @XmlElement(name = "EaF2")
