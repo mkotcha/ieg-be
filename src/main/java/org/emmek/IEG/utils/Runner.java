@@ -2,11 +2,14 @@ package org.emmek.IEG.utils;
 
 
 import com.poiji.bind.Poiji;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
 import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Ruolo;
 import org.emmek.IEG.entities.Utente;
 import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.helpers.ClienteModel;
+import org.emmek.IEG.helpers.FlussoMisure;
 import org.emmek.IEG.services.ClienteService;
 import org.emmek.IEG.services.RuoloService;
 import org.emmek.IEG.services.UtenteService;
@@ -17,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.List;
 
 @Component
@@ -48,7 +53,15 @@ public class Runner implements CommandLineRunner {
         createRoleIfNotExist("ADMIN");
         createRoleIfNotExist("USER");
         crateAdminIfNotExist(username);
-        importClienti();
+//        importClienti();
+        FlussoMisure flussoMisure = unmarshal();
+        System.out.println(flussoMisure.toString());
+    }
+
+    public FlussoMisure unmarshal() throws JAXBException, IOException {
+        JAXBContext context = JAXBContext.newInstance(FlussoMisure.class);
+        return (FlussoMisure) context.createUnmarshaller()
+                .unmarshal(new FileReader("data/test.xml"));
     }
 
     private void crateAdminIfNotExist(String username) {

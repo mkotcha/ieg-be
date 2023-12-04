@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 public class Cliente {
     @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long id;
 
     @Column(name = "ragione_sociale", nullable = false)
