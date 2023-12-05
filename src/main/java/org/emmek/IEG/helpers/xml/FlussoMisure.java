@@ -6,6 +6,8 @@ import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import lombok.*;
 
+import java.util.List;
+
 @XmlRootElement(name = "FlussoMisure")
 @XmlAccessorType(XmlAccessType.FIELD)
 @NoArgsConstructor
@@ -15,7 +17,7 @@ import lombok.*;
 @ToString
 public class FlussoMisure {
     @XmlElement(name = "DatiPod")
-    public DatiPod datiPod;
+    public List<DatiPod> datiPod;
 
 
 }

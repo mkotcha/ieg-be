@@ -1,5 +1,6 @@
 package org.emmek.IEG.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -73,6 +74,7 @@ public class Lettura {
 
     @ManyToOne
     @JoinColumn(name = "fornitura_pod", nullable = false)
+    @JsonIgnore
     private Fornitura fornitura;
 
     @ManyToMany()
@@ -81,6 +83,7 @@ public class Lettura {
             joinColumns = @JoinColumn(name = "lettura_id"),
             inverseJoinColumns = @JoinColumn(name = "fattura_id")
     )
+    @JsonIgnore
     private List<Fattura> fatture;
 
     @OneToMany(mappedBy = "lettura")

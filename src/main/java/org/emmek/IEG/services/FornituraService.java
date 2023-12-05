@@ -23,4 +23,8 @@ public class FornituraService {
     public void save(Fornitura fornitura) {
         fornituraRepository.save(fornitura);
     }
+
+    public Fornitura finById(String pod) {
+        return fornituraRepository.findById(pod).orElseThrow(() -> new RuntimeException("Fornitura con id: " + pod + " non trovata"));
+    }
 }
