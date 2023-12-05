@@ -9,7 +9,6 @@ import org.emmek.IEG.enums.*;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "forniture")
@@ -19,13 +18,14 @@ import java.util.UUID;
 @Setter
 public class Fornitura {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
-    private UUID id;
+//    @Id
+//    @GeneratedValue(strategy = GenerationType.UUID)
+//    @Column(name = "id")
+//    private UUID id;
 
+    @Id
     @Column(name = "pod", nullable = false)
-    private String pod;
+    private String id;
 
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
@@ -91,7 +91,7 @@ public class Fornitura {
     @ManyToMany
     @JoinTable(
             name = "fatture_forniture",
-            joinColumns = @JoinColumn(name = "fornitura_id"),
+            joinColumns = @JoinColumn(name = "fornitura_pod"),
             inverseJoinColumns = @JoinColumn(name = "fattura_id")
     )
     private List<Fattura> fatture;

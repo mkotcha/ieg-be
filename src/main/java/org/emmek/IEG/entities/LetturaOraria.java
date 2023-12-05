@@ -19,11 +19,12 @@ public class LetturaOraria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
+
     private String giorno;
 
     @ElementCollection
     private Map<String, String> attributi;
-    
+
     @ManyToOne
     @JoinColumn(name = "lettura_id")
     private Lettura lettura;

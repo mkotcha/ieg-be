@@ -7,8 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.emmek.IEG.enums.BTA;
 
-import java.util.UUID;
-
 @Entity
 @Table(name = "oneri")
 @NoArgsConstructor
@@ -17,9 +15,8 @@ import java.util.UUID;
 @Setter
 public class Oneri {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
     @Column(name = "tipo", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -66,5 +63,5 @@ public class Oneri {
 
     @Column(name = "anno", nullable = false)
     private int anno;
-    
+
 }

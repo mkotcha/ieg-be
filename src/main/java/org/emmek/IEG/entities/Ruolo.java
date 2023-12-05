@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Set;
-import java.util.UUID;
 
 @Getter
 @Setter
@@ -18,14 +17,13 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Ruolo {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonIgnore
-    private UUID id;
+    private long id;
 
     private String ruolo;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "ruoli_utenti", joinColumns = @JoinColumn(name = "ruolo_id"), inverseJoinColumns = @JoinColumn(name = "utente_id"))
+    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "ruoli")
     @JsonIgnore
     private Set<Utente> utenti;
 }

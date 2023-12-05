@@ -1,4 +1,4 @@
-package org.emmek.IEG.helpers;
+package org.emmek.IEG.helpers.xml;
 
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;

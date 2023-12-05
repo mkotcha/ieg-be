@@ -1,4 +1,4 @@
-package org.emmek.IEG.helpers;
+package org.emmek.IEG.helpers.excel;
 
 import com.poiji.bind.Poiji;
 

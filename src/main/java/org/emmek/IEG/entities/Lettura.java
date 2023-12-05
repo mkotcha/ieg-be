@@ -9,7 +9,6 @@ import org.emmek.IEG.enums.TipoContatore;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "letture")
@@ -19,9 +18,8 @@ import java.util.UUID;
 @Setter
 public class Lettura {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id")
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
 
     private boolean isUtile;
 
@@ -74,7 +72,7 @@ public class Lettura {
     private double potF3;
 
     @ManyToOne
-    @JoinColumn(name = "fornitura_id", nullable = false)
+    @JoinColumn(name = "fornitura_pod", nullable = false)
     private Fornitura fornitura;
 
     @ManyToMany()

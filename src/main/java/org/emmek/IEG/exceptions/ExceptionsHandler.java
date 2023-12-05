@@ -9,6 +9,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Date;
 import java.util.List;
@@ -38,7 +39,7 @@ public class ExceptionsHandler {
     public ErrorsResponseDTO handleAccessDenied(AccessDeniedException e) {
         return new ErrorsResponseDTO(e.getMessage(), new Date());
     }
-    
+
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorsResponseDTO handleNotFound(NotFoundException e) {
@@ -63,10 +64,17 @@ public class ExceptionsHandler {
         return new ErrorsResponseDTO(e.getMessage(), new Date());
     }
 
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorsResponseDTO handleGeneric(Exception e) {
-        log.error("Server Error", e);
-        return new ErrorsResponseDTO("Server Error", new Date());
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorsResponseDTO handleNoResourceFound(NoResourceFoundException e) {
+        return new ErrorsResponseDTO(e.getMessage(), new Date());
     }
+
+
+//    @ExceptionHandler(Exception.class)
+//    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+//    public ErrorsResponseDTO handleGeneric(Exception e) {
+//        log.error("Server Error", e);
+//        return new ErrorsResponseDTO("Server Error", new Date());
+//    }
 }

@@ -1,4 +1,4 @@
-package org.emmek.IEG.helpers;
+package org.emmek.IEG.helpers.xml;
 
 import jakarta.xml.bind.annotation.XmlAnyAttribute;
 import jakarta.xml.bind.annotation.XmlRootElement;
