@@ -1,12 +1,13 @@
 package org.emmek.IEG.entities;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.UUID;
 
 @Entity
 @Table(name = "clienti")
@@ -16,25 +17,33 @@ import java.util.UUID;
 @Setter
 public class Cliente {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+//    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    private long id;
 
     @Column(name = "ragione_sociale", nullable = false)
     private String ragioneSociale;
 
-    @Column(name = "piva", nullable = false, unique = true)
-    private String piva;
+    @Column(name = "piva", nullable = false)
+    private String pIva;
 
-    @Column(name = "CF", nullable = false, unique = true)
-    private String CF;
+    @Column(name = "CF", nullable = false)
+    private String cf;
 
-    @ManyToOne
-    @JoinColumn(name = "indirizzo_id", nullable = false)
-    private Indirizzo indirizzo;
+    @Column(name = "indirizzo", nullable = false)
+    private String indirizzo;
 
-    @Column(name = "telefono", nullable = false)
+    @Column(name = "cap", nullable = false)
+    private int cap;
+
+    @Column(name = "comune", nullable = false)
+    private String comune;
+
+    @Column(name = "provincia", nullable = false)
+    private String provincia;
+
+    @Column(name = "telefono", nullable = true)
     private String telefono;
 
-    @Column(name = "email", nullable = false)
+    @Column(name = "email", nullable = true)
     private String email;
 }

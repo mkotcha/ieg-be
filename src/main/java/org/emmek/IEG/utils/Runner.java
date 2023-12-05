@@ -1,16 +1,27 @@
 package org.emmek.IEG.utils;
 
 
-import org.emmek.IEG.entities.Ruolo;
-import org.emmek.IEG.entities.Utente;
+import com.poiji.bind.Poiji;
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import org.emmek.IEG.entities.*;
+import org.emmek.IEG.enums.*;
 import org.emmek.IEG.exceptions.NotFoundException;
-import org.emmek.IEG.services.RuoloService;
-import org.emmek.IEG.services.UtenteService;
+import org.emmek.IEG.helpers.excel.ClienteModel;
+import org.emmek.IEG.helpers.excel.FornituraModel;
+import org.emmek.IEG.helpers.xml.FlussoMisure;
+import org.emmek.IEG.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.util.List;
 
 @Component
 public class Runner implements CommandLineRunner {
@@ -21,6 +32,17 @@ public class Runner implements CommandLineRunner {
     @Autowired
     UtenteService utenteService;
 
+    @Autowired
+    ClienteService clienteService;
+
+    @Autowired
+    PrezzoService prezzoService;
+
+    @Autowired
+    FornituraService fornituraService;
+
+    @Autowired
+    ProgrammazioneService programmazioneService;
 
     @Value("${admin.username}")
     private String username;
@@ -39,6 +61,16 @@ public class Runner implements CommandLineRunner {
         createRoleIfNotExist("ADMIN");
         createRoleIfNotExist("USER");
         crateAdminIfNotExist(username);
+        importClienti();
+        importForniture();
+//        FlussoMisure flussoMisure = unmarshal();
+//        System.out.println(flussoMisure.toString());
+    }
+
+    public FlussoMisure unmarshal() throws JAXBException, IOException {
+        JAXBContext context = JAXBContext.newInstance(FlussoMisure.class);
+        return (FlussoMisure) context.createUnmarshaller()
+                .unmarshal(new FileReader("data/test_o.xml"));
     }
 
     private void crateAdminIfNotExist(String username) {
@@ -62,5 +94,102 @@ public class Runner implements CommandLineRunner {
             ruolo.setRuolo(roleName);
             ruoloService.save(ruolo);
         }
+    }
+
+    private Prezzo createPrezzoIfNotExist(String nome, double maggiorazione, double spread) {
+        Prezzo prezzo;
+        try {
+            prezzo = prezzoService.findByNome(nome);
+        } catch (RuntimeException e) {
+            prezzo = new Prezzo();
+            prezzo.setNome(nome);
+            prezzo.setPun(true);
+            prezzo.setMaggiorazione(maggiorazione);
+            prezzo.setSpread(spread);
+        }
+        return prezzoService.save(prezzo);
+    }
+
+    public void importClienti() {
+        List<ClienteModel> clienti = Poiji.fromExcel(new File("data/clienti.xlsx"), ClienteModel.class);
+        for (ClienteModel clienteModel : clienti) {
+            Cliente cliente = new Cliente();
+            cliente.setId(clienteModel.getId());
+            cliente.setRagioneSociale(clienteModel.getRagioneSociale());
+            cliente.setPIva(clienteModel.getPIva());
+            cliente.setCf(clienteModel.getCf());
+            cliente.setTelefono(clienteModel.getTelefono());
+            cliente.setEmail(clienteModel.getEmail());
+            cliente.setIndirizzo(clienteModel.getIndirizzo());
+            cliente.setCap(clienteModel.getCap());
+            cliente.setProvincia(clienteModel.getProvincia());
+            cliente.setComune(clienteModel.getComune());
+            clienteService.save(cliente);
+        }
+    }
+
+    public void importForniture() {
+        List<FornituraModel> forniture = Poiji.fromExcel(new File("data/forniture.xlsx"), FornituraModel.class);
+        for (FornituraModel fornituraModel : forniture) {
+            Fornitura fornitura = new Fornitura();
+            Cliente cliente = clienteService.findById(fornituraModel.getIdCliente());
+            fornitura.setCliente(cliente);
+            fornitura.setId(fornituraModel.getId());
+            fornitura.setIndirizzo(fornituraModel.getIndirizzoFornitura());
+            fornitura.setComune(fornituraModel.getComuneFornitura());
+            fornitura.setProvincia(fornituraModel.getProvinciaFornitura());
+            fornitura.setCap(fornituraModel.getCapFornitura());
+            fornitura.setPotenzaDisponibile(fornituraModel.getPotenzaDisponibile());
+            fornitura.setPotenzaImpegnata(fornituraModel.getPotenzaImpegnata());
+            fornitura.setTipoPrelievo(TipoPrelievo.valueOf("BT"));
+            if (fornituraModel.getTipoContatore().contains("asci")) {
+                fornitura.setTipoContatore(TipoContatore.FASCIA);
+            } else {
+                fornitura.setTipoContatore(TipoContatore.ORARIO);
+            }
+            if (fornituraModel.getCodiceDistributore().contains("ENEL")) {
+                fornitura.setCodiceDistributore(CodiceDistributore.EDIST);
+            } else {
+                fornitura.setCodiceDistributore(CodiceDistributore.A2A);
+            }
+            fornitura.setFornitore(fornituraModel.getFornitore());
+            fornitura.setFatturazione(Fatturazione.MENSILE);
+            Prezzo prezzo;
+            Programmazione programmazione;
+            if (fornituraModel.getDispacciamento().equals("10 ott")) {
+                prezzo = createPrezzoIfNotExist("BASE " + fornituraModel.getSpread(), fornituraModel.getMaggiorazione(), fornituraModel.getSpread());
+                programmazione = createProgrammazioneIfNotExist("BASE");
+            } else {
+                prezzo = createPrezzoIfNotExist("MAGGIORATO " + fornituraModel.getMaggiorazione(), fornituraModel.getMaggiorazione(), fornituraModel.getSpread());
+                programmazione = createProgrammazioneIfNotExist("MAGGIORATO");
+            }
+            fornitura.setProgrammazione(programmazione);
+            fornitura.setPrezzo(prezzo);
+            fornitura.setBta(BTA.valueOf(fornituraModel.getBta()));
+            fornitura.setIva(Double.parseDouble(fornituraModel.getIva()));
+            fornitura.setDataSwitch(LocalDate.parse(fornituraModel.getDataSwitch()));
+
+            fornituraService.save(fornitura);
+        }
+
+    }
+
+    private Programmazione createProgrammazioneIfNotExist(String maggiorato) {
+        Programmazione programmazione;
+        try {
+            programmazione = programmazioneService.findByNome(maggiorato);
+        } catch (RuntimeException e) {
+            programmazione = new Programmazione();
+            programmazione.setNome(maggiorato);
+
+            if (maggiorato.equals("BASE")) {
+                programmazione.setOneriProgrammazione(14);
+                programmazione.setCommercializzazione(10.47022);
+            } else {
+                programmazione.setOneriProgrammazione(8);
+                programmazione.setCommercializzazione(15);
+            }
+        }
+        return programmazioneService.save(programmazione);
     }
 }

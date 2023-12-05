@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "fatture")
@@ -17,9 +16,9 @@ import java.util.UUID;
 @Setter
 public class Fattura {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private UUID id;
+    private long id;
 
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)

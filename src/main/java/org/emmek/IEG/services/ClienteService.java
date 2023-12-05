@@ -19,4 +19,12 @@ public class ClienteService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
         return clienteRepository.findAll(pageable);
     }
+
+    public void save(Cliente cliente) {
+        clienteRepository.save(cliente);
+    }
+
+    public Cliente findById(long idCliente) {
+        return clienteRepository.findById(idCliente).orElseThrow(() -> new RuntimeException("Cliente con id: " + idCliente + " non trovato"));
+    }
 }

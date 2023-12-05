@@ -11,8 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 
 @Service
 public class UtenteService {
@@ -28,11 +26,11 @@ public class UtenteService {
         return utenteRepository.findByEmail(email).orElseThrow(() -> new NotFoundException("utente con email" + email + "non trovato"));
     }
 
-    public Utente findById(UUID id) throws NotFoundException {
+    public Utente findById(Long id) throws NotFoundException {
         return utenteRepository.findById(id).orElseThrow(() -> new NotFoundException(id.toString()));
     }
 
-    public Utente findByIdAndUpdate(UUID id, Utente body) throws NotFoundException {
+    public Utente findByIdAndUpdate(Long id, Utente body) throws NotFoundException {
         Utente found = this.findById(id);
         found.setCognome(body.getCognome());
         found.setNome(body.getNome());
@@ -41,7 +39,7 @@ public class UtenteService {
         return utenteRepository.save(found);
     }
 
-    public void findByIdAndDelete(UUID id) throws NotFoundException {
+    public void findByIdAndDelete(Long id) throws NotFoundException {
         Utente found = this.findById(id);
         utenteRepository.delete(found);
     }

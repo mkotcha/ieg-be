@@ -1,29 +1,31 @@
 package org.emmek.IEG.entities;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Set;
+import java.util.Map;
 
-@Getter
-@Setter
 @Entity
-@Table(name = "ruoli")
+@Table(name = "letture_orarie")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Ruolo {
+@Getter
+@Setter
+public class LetturaOraria {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonIgnore
     private long id;
 
-    private String ruolo;
+    private String giorno;
 
-    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "ruoli")
-    @JsonIgnore
-    private Set<Utente> utenti;
+    @ElementCollection
+    private Map<String, String> attributi;
+
+    @ManyToOne
+    @JoinColumn(name = "lettura_id")
+    private Lettura lettura;
 }
