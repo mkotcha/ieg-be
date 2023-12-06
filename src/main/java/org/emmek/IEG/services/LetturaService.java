@@ -38,10 +38,10 @@ public class LetturaService {
     }
 
     public String uploadFlussi(MultipartFile body) throws IOException, JAXBException {
-        String source = body.getOriginalFilename();
         String destination = "data/uploads";
-
+        deleteAllFilesInFolder(destination);
         File zip = File.createTempFile(UUID.randomUUID().toString(), "temp");
+        System.out.println("zip: " + zip.getAbsolutePath());
         FileOutputStream o = new FileOutputStream(zip);
         IOUtils.copy(body.getInputStream(), o);
         o.close();
@@ -49,12 +49,14 @@ public class LetturaService {
         ZipFile zipFile = new ZipFile(zip);
         zipFile.extractAll(destination);
 
+        System.out.println("estratti ");
         File folder = new File(destination);
         File[] listOfFiles = folder.listFiles();
 
         if (listOfFiles != null) {
             for (File file : listOfFiles) {
                 if (file.isFile()) {
+                    System.out.println("file singolo: " + file.getAbsolutePath());
                     try (ZipFile innerZipFile = new ZipFile(file)) {
                         innerZipFile.extractAll(destination);
                     }
@@ -92,5 +94,17 @@ public class LetturaService {
 
         return "fino a qui tutto bene...";
 
+    }
+
+    private void deleteAllFilesInFolder(String folderPath) {
+        File folder = new File(folderPath);
+        File[] files = folder.listFiles();
+        if (files != null) { //some JVMs return null for empty directories
+            for (File f : files) {
+                if (f.isFile()) {
+                    f.delete();
+                }
+            }
+        }
     }
 }
