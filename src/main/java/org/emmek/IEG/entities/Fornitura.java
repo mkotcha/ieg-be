@@ -1,5 +1,6 @@
 package org.emmek.IEG.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -94,9 +95,11 @@ public class Fornitura {
             joinColumns = @JoinColumn(name = "fornitura_pod"),
             inverseJoinColumns = @JoinColumn(name = "fattura_id")
     )
+    @JsonIgnore
     private List<Fattura> fatture;
 
     @OneToMany(mappedBy = "fornitura")
+    @JsonIgnore
     private List<Lettura> letture;
 }
 

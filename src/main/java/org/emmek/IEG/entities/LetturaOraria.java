@@ -1,5 +1,6 @@
 package org.emmek.IEG.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,5 +28,6 @@ public class LetturaOraria {
 
     @ManyToOne
     @JoinColumn(name = "lettura_id")
+    @JsonIgnore
     private Lettura lettura;
 }

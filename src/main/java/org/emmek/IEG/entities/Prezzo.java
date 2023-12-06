@@ -1,5 +1,6 @@
 package org.emmek.IEG.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -41,5 +42,6 @@ public class Prezzo {
     private double spread;
 
     @OneToMany(mappedBy = "prezzo")
+    @JsonIgnore
     private List<Fornitura> forniture;
 }
