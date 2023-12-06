@@ -1,23 +1,20 @@
 package org.emmek.IEG.helpers.xml;
 
-import jakarta.xml.bind.annotation.XmlAccessType;
-import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.List;
 
 @XmlRootElement(name = "FlussoMisure")
-@XmlAccessorType(XmlAccessType.FIELD)
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
 @Setter
 @ToString
 public class FlussoMisure {
     @XmlElement(name = "DatiPod")
     public List<DatiPod> datiPod;
-
-
 }

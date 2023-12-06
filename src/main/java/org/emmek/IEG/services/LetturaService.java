@@ -48,15 +48,14 @@ public class LetturaService {
 
         ZipFile zipFile = new ZipFile(zip);
         zipFile.extractAll(destination);
-
         System.out.println("estratti ");
-        File folder = new File(destination);
-        File[] listOfFiles = folder.listFiles();
 
-        if (listOfFiles != null) {
-            for (File file : listOfFiles) {
+        File folder = new File(destination);
+        File[] listOfZipFiles = folder.listFiles();
+
+        if (listOfZipFiles != null) {
+            for (File file : listOfZipFiles) {
                 if (file.isFile()) {
-                    System.out.println("file singolo: " + file.getAbsolutePath());
                     try (ZipFile innerZipFile = new ZipFile(file)) {
                         innerZipFile.extractAll(destination);
                     }
@@ -64,22 +63,27 @@ public class LetturaService {
 
                 }
             }
+            System.out.println("eliminati i file zip");
         }
-        JAXBContext context = JAXBContext.newInstance(FlussoMisure.class);
 
-        listOfFiles = folder.listFiles();
-        if (listOfFiles != null) {
-            for (File file : listOfFiles) {
-                if (file.isFile()) {
+
+        File[] listOfXmlFiles = folder.listFiles();
+        System.out.println("trovati " + listOfXmlFiles.length + " file XML");
+        for (File file : listOfXmlFiles) {
+            if (file.isFile()) {
+
+                try {
+                    JAXBContext context = JAXBContext.newInstance(FlussoMisure.class);
                     FlussoMisure flussi = (FlussoMisure) context.createUnmarshaller()
                             .unmarshal(new FileReader(file.getAbsolutePath()));
-
-                    for (DatiPod datiPod : flussi.getDatiPod()) {
+                    System.out.println("yo!");
+                    for (DatiPod datiPod : flussi.datiPod) {
 
                         try {
-                            Fornitura fornitura = fornituraService.finById(datiPod.getPod());
-                            System.out.println(datiPod.getPod());
-                            System.out.println("trovato " + datiPod.getMisura());
+                            Fornitura fornitura = fornituraService.finById(datiPod.pod);
+
+                            System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
+                            System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
                         } catch (Exception ignored) {
 
                         }
@@ -87,9 +91,27 @@ public class LetturaService {
                     }
 
 
+                } catch (JAXBException e) {
+                    e.printStackTrace();
                 }
+
+
+//                System.out.println("trovati " + flussi.getDatiPod().getPod() + " POD");
+//                for (DatiPod datiPod : flussi.getDatiPod()) {
+//
+//                    try {
+//                        Fornitura fornitura = fornituraService.finById(datiPod.getPod());
+//
+//                        System.out.println(datiPod.getPod() + " " + fornitura.getCliente().getRagioneSociale());
+////                            System.out.println("trovato " + datiPod.getMisura().getEa().get(0).getValore());
+//                    } catch (Exception ignored) {
+//                        System.out.println("non trovato " + datiPod.getPod());
+//                    }
+//
+//                }
             }
         }
+        System.out.println("finito");
 
 
         return "fino a qui tutto bene...";

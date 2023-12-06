@@ -2,45 +2,47 @@ package org.emmek.IEG.helpers.xml;
 
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
 import java.util.List;
 
 @XmlRootElement(name = "Misura")
+@NoArgsConstructor
 @ToString
 @Setter
 public class Misura {
     @XmlElement(name = "Raccolta")
-    private String raccolta;
+    public String raccolta;
     @XmlElement(name = "TipoDato")
-    private String tipoDato;
+    public String tipoDato;
     @XmlElement(name = "CausaOstativa")
-    private String causaOstativa;
+    public String causaOstativa;
     @XmlElement(name = "Validato")
-    private String validato;
+    public String validato;
     @XmlElement(name = "PotMax")
-    private String potMax;
+    public String potMax;
     @XmlElement(name = "Ea")
-    private List<MisuraOraria> ea;
+    public List<MisuraOraria> ea;
     @XmlElement(name = "Er")
-    private List<MisuraOraria> er;
+    public List<MisuraOraria> er;
     @XmlElement(name = "EaF1")
-    private String eaF1;
+    public String eaF1;
     @XmlElement(name = "EaF2")
-    private String eaF2;
+    public String eaF2;
     @XmlElement(name = "EaF3")
-    private String eaF3;
+    public String eaF3;
     @XmlElement(name = "ErF1")
-    private String erF1;
+    public String erF1;
     @XmlElement(name = "ErF2")
-    private String erF2;
+    public String erF2;
     @XmlElement(name = "ErF3")
-    private String erF3;
+    public String erF3;
     @XmlElement(name = "PotF1")
-    private String potF1;
+    public String potF1;
     @XmlElement(name = "PotF2")
-    private String potF2;
+    public String potF2;
     @XmlElement(name = "PotF3")
-    private String potF3;
+    public String potF3;
 }

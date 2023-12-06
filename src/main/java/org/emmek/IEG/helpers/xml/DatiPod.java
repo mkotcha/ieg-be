@@ -2,15 +2,18 @@ package org.emmek.IEG.helpers.xml;
 
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
-import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
 
 @XmlRootElement(name = "DatiPod")
-@Getter
+@NoArgsConstructor
+@Setter
 @ToString
 public class DatiPod {
     @XmlElement(name = "Pod")
     public String pod;
+
     @XmlElement(name = "MeseAnno")
     public String meseAnno;
 
