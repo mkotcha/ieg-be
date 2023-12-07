@@ -9,6 +9,7 @@ import org.emmek.IEG.enums.*;
 import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.helpers.excel.ClienteModel;
 import org.emmek.IEG.helpers.excel.FornituraModel;
+import org.emmek.IEG.helpers.excel.LetturaModel;
 import org.emmek.IEG.helpers.xml.FlussoMisure;
 import org.emmek.IEG.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,8 +64,30 @@ public class Runner implements CommandLineRunner {
         crateAdminIfNotExist(username);
         importClienti();
         importForniture();
+        importLetture();
 //        FlussoMisure flussoMisure = unmarshal();
 //        System.out.println(flussoMisure.toString());
+    }
+
+    private void importLetture() {
+        List<LetturaModel> letture = Poiji.fromExcel(new File("data/letture.xlsx"), LetturaModel.class);
+
+        for (LetturaModel letturaModel : letture) {
+            Fornitura fornitura = fornituraService.finById(letturaModel.getPod());
+            Lettura lettura = new Lettura();
+            lettura.setFornitura(fornitura);
+            switch (letturaModel.getTipoLettura()) {
+                case "Lettura stimata" -> lettura.setTipoLettura(TipoLettura.STIMA);
+                case "Auto lettura" -> lettura.setTipoLettura(TipoLettura.AUTOLETTURA);
+                case "Cambio contatore" -> lettura.setTipoLettura(TipoLettura.CAMBIO);
+                default -> lettura.setTipoLettura(TipoLettura.REALE);
+            }
+            if (letturaModel.getTipo().equals("NEW")) {
+                lettura.setTipoLettura(TipoLettura.CAMBIO)
+            }
+
+        }
+
     }
 
     public FlussoMisure unmarshal() throws JAXBException, IOException {

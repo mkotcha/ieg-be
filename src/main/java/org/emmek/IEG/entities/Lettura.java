@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.emmek.IEG.enums.TipoContatore;
+import org.emmek.IEG.enums.TipoLettura;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -26,7 +27,7 @@ public class Lettura {
 
     @Column(name = "tipo_lettura", nullable = false)
     @Enumerated(EnumType.STRING)
-    private TipoContatore tipoLettura;
+    private TipoLettura tipoLettura;
 
     @Column(name = "tipo_contatore", nullable = false)
     @Enumerated(EnumType.STRING)

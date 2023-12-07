@@ -1,5 +1,6 @@
 package org.emmek.IEG.enums;
 
 public enum TipoLettura {
-    REALE, STIMA, RETTIFICA
+    REALE, STIMA, RETTIFICA, AUTOLETTURA, CAMBIO
+
 }
