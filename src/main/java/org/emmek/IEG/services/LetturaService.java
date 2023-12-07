@@ -1,9 +1,9 @@
 package org.emmek.IEG.services;
 
-import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import net.lingala.zip4j.ZipFile;
 import org.apache.commons.compress.utils.IOUtils;
+import org.emmek.IEG.configs.JaxbParser;
 import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.entities.Lettura;
 import org.emmek.IEG.helpers.xml.DatiPod;
@@ -19,7 +19,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -31,6 +30,10 @@ public class LetturaService {
 
     @Autowired
     private FornituraService fornituraService;
+
+    @Autowired
+//    private Function<String, FlussoMisure> parseXmlFunction;
+    private JaxbParser jaxbParser;
 
     public Page<Lettura> findAll(int page, int size, String sort) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
@@ -60,62 +63,35 @@ public class LetturaService {
                         innerZipFile.extractAll(destination);
                     }
                     boolean deleted = file.delete();
-
                 }
             }
             System.out.println("eliminati i file zip");
         }
 
-
         File[] listOfXmlFiles = folder.listFiles();
-        System.out.println("trovati " + listOfXmlFiles.length + " file XML");
-        for (File file : listOfXmlFiles) {
-            if (file.isFile()) {
 
-                try {
-                    JAXBContext context = JAXBContext.newInstance(FlussoMisure.class);
-                    FlussoMisure flussi = (FlussoMisure) context.createUnmarshaller()
-                            .unmarshal(new FileReader(file.getAbsolutePath()));
-                    System.out.println("yo!");
+        if (listOfXmlFiles != null) {
+            System.out.println("trovati " + listOfXmlFiles.length + " file XML");
+            for (File file : listOfXmlFiles) {
+                if (file.isFile()) {
+                    FlussoMisure flussi = jaxbParser.parseXml(file.getAbsolutePath());
                     for (DatiPod datiPod : flussi.datiPod) {
-
                         try {
                             Fornitura fornitura = fornituraService.finById(datiPod.pod);
+                            if (datiPod.misura.ea.get(0).valore.equals("31")) {
 
-                            System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
-                            System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
+                                System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
+                                System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
+                            }
                         } catch (Exception ignored) {
-
                         }
-
                     }
-
-
-                } catch (JAXBException e) {
-                    e.printStackTrace();
                 }
-
-
-//                System.out.println("trovati " + flussi.getDatiPod().getPod() + " POD");
-//                for (DatiPod datiPod : flussi.getDatiPod()) {
-//
-//                    try {
-//                        Fornitura fornitura = fornituraService.finById(datiPod.getPod());
-//
-//                        System.out.println(datiPod.getPod() + " " + fornitura.getCliente().getRagioneSociale());
-////                            System.out.println("trovato " + datiPod.getMisura().getEa().get(0).getValore());
-//                    } catch (Exception ignored) {
-//                        System.out.println("non trovato " + datiPod.getPod());
-//                    }
-//
-//                }
             }
         }
+
         System.out.println("finito");
-
-
         return "fino a qui tutto bene...";
-
     }
 
     private void deleteAllFilesInFolder(String folderPath) {

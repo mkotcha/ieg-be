@@ -72,6 +72,8 @@ public class Lettura {
     @Column(name = "pot_f3", nullable = true)
     private double potF3;
 
+    private String note;
+
     @ManyToOne
     @JoinColumn(name = "fornitura_pod", nullable = false)
     @JsonIgnore
