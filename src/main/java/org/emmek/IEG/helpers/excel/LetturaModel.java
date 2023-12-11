@@ -17,7 +17,7 @@ public class LetturaModel {
     private String data;
 
     @ExcelCellName("tipo3")
-    private String tipo;
+    private String tipo = "";
 
     @ExcelCellName("tipo lettura")
     private String tipoLettura;

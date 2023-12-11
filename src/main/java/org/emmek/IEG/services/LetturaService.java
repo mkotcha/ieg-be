@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.UUID;
 
@@ -54,7 +55,11 @@ public class LetturaService {
         System.out.println("estratti ");
 
         File folder = new File(destination);
-        File[] listOfZipFiles = folder.listFiles();
+        File[] listOfZipFiles = folder.listFiles(new FilenameFilter() {
+            public boolean accept(File dir, String name) {
+                return name.toLowerCase().endsWith(".zip");
+            }
+        });
 
         if (listOfZipFiles != null) {
             for (File file : listOfZipFiles) {
@@ -78,11 +83,11 @@ public class LetturaService {
                     for (DatiPod datiPod : flussi.datiPod) {
                         try {
                             Fornitura fornitura = fornituraService.finById(datiPod.pod);
-                            if (datiPod.misura.ea.get(0).valore.equals("31")) {
-
-                                System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
-                                System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
-                            }
+//                            if (datiPod.misura.ea.get(0).valore.equals("31")) {
+                            System.out.println(file.getName());
+                            System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
+                            System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
+//                            }
                         } catch (Exception ignored) {
                         }
                     }
@@ -104,5 +109,9 @@ public class LetturaService {
                 }
             }
         }
+    }
+
+    public void save(Lettura lettura) {
+        letturaRepository.save(lettura);
     }
 }

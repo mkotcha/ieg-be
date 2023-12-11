@@ -4,6 +4,7 @@ package org.emmek.IEG.utils;
 import com.poiji.bind.Poiji;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
+import lombok.extern.slf4j.Slf4j;
 import org.emmek.IEG.entities.*;
 import org.emmek.IEG.enums.*;
 import org.emmek.IEG.exceptions.NotFoundException;
@@ -25,6 +26,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Component
+@Slf4j
 public class Runner implements CommandLineRunner {
 
     @Autowired
@@ -41,6 +43,9 @@ public class Runner implements CommandLineRunner {
 
     @Autowired
     FornituraService fornituraService;
+
+    @Autowired
+    LetturaService letturaService;
 
     @Autowired
     ProgrammazioneService programmazioneService;
@@ -64,7 +69,7 @@ public class Runner implements CommandLineRunner {
         crateAdminIfNotExist(username);
         importClienti();
         importForniture();
-        importLetture();
+//        importLetture();
 //        FlussoMisure flussoMisure = unmarshal();
 //        System.out.println(flussoMisure.toString());
     }
@@ -73,17 +78,34 @@ public class Runner implements CommandLineRunner {
         List<LetturaModel> letture = Poiji.fromExcel(new File("data/letture.xlsx"), LetturaModel.class);
 
         for (LetturaModel letturaModel : letture) {
-            Fornitura fornitura = fornituraService.finById(letturaModel.getPod());
-            Lettura lettura = new Lettura();
-            lettura.setFornitura(fornitura);
-            switch (letturaModel.getTipoLettura()) {
-                case "Lettura stimata" -> lettura.setTipoLettura(TipoLettura.STIMA);
-                case "Auto lettura" -> lettura.setTipoLettura(TipoLettura.AUTOLETTURA);
-                case "Cambio contatore" -> lettura.setTipoLettura(TipoLettura.CAMBIO);
-                default -> lettura.setTipoLettura(TipoLettura.REALE);
-            }
-            if (letturaModel.getTipo().equals("NEW")) {
-                lettura.setTipoLettura(TipoLettura.CAMBIO)
+            try {
+                Fornitura fornitura = fornituraService.finById(letturaModel.getPod());
+                Lettura lettura = new Lettura();
+                lettura.setFornitura(fornitura);
+                switch (letturaModel.getTipoLettura()) {
+                    case "Lettura stimata" -> lettura.setTipoLettura(TipoLettura.STIMA);
+                    case "Auto lettura" -> lettura.setTipoLettura(TipoLettura.AUTOLETTURA);
+                    case "Cambio contatore" -> lettura.setTipoLettura(TipoLettura.CAMBIO);
+                    default -> lettura.setTipoLettura(TipoLettura.REALE);
+                }
+                if (letturaModel.getTipo().equals("NEW")) {
+                    lettura.setTipoLettura(TipoLettura.CAMBIO);
+                }
+                lettura.setDataLettura(LocalDate.parse(letturaModel.getData()));
+                lettura.setTipoContatore(TipoContatore.FASCIA);
+                lettura.setEaF1(Double.parseDouble(letturaModel.getF1()));
+                lettura.setEaF2(Double.parseDouble(letturaModel.getF2()));
+                lettura.setEaF3(Double.parseDouble(letturaModel.getF3()));
+                lettura.setErF1(Double.parseDouble(letturaModel.getF1r()));
+                lettura.setErF2(Double.parseDouble(letturaModel.getF2r()));
+                lettura.setErF3(Double.parseDouble(letturaModel.getF3r()));
+                lettura.setPotF1(Double.parseDouble(letturaModel.getPF1()));
+                lettura.setPotF2(Double.parseDouble(letturaModel.getPF2()));
+                lettura.setPotF3(Double.parseDouble(letturaModel.getPF3()));
+
+                letturaService.save(lettura);
+            } catch (Exception e) {
+                log.debug("lettura non importata - pod: " + letturaModel.getPod());
             }
 
         }

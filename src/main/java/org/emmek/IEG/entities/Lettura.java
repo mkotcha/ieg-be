@@ -23,6 +23,7 @@ public class Lettura {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Column(name = "is_utile", nullable = true)
     private boolean isUtile;
 
     @Column(name = "tipo_lettura", nullable = false)
@@ -38,12 +39,15 @@ public class Lettura {
 
     private String raccolta;
 
+    @Column(name = "tipo_dato", nullable = true)
     private String tipoDato;
 
+    @Column(name = "causa_ostativa", nullable = true)
     private String causaOstativa;
 
     private String validato;
 
+    @Column(name = "pot_max", nullable = true)
     private String potMax;
 
     @Column(name = "ea_f1", nullable = false)
