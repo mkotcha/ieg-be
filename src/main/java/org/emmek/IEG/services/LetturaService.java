@@ -1,11 +1,14 @@
 package org.emmek.IEG.services;
 
 import jakarta.xml.bind.JAXBException;
+import lombok.extern.slf4j.Slf4j;
 import net.lingala.zip4j.ZipFile;
 import org.apache.commons.compress.utils.IOUtils;
 import org.emmek.IEG.configs.JaxbParser;
 import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.entities.Lettura;
+import org.emmek.IEG.enums.TipoContatore;
+import org.emmek.IEG.enums.TipoLettura;
 import org.emmek.IEG.helpers.xml.DatiPod;
 import org.emmek.IEG.helpers.xml.FlussoMisure;
 import org.emmek.IEG.repositories.LetturaRepository;
@@ -21,9 +24,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class LetturaService {
 
     @Autowired
@@ -83,12 +88,47 @@ public class LetturaService {
                     for (DatiPod datiPod : flussi.datiPod) {
                         try {
                             Fornitura fornitura = fornituraService.finById(datiPod.pod);
-                            if (datiPod.misura.validato.equals("S")) {
+                            if (datiPod.misura.validato.equals("S") && datiPod.misura.ea.get(0).valore.equals("30")) {
+                                Lettura lettura = new Lettura();
+                                lettura.setFornitura(fornitura);
+                                String meseAnno = datiPod.meseAnno;
+                                int mese = Integer.parseInt(meseAnno.substring(0, 2));
+                                int anno = Integer.parseInt(meseAnno.substring(2, 6));
+                                int giorno = Integer.parseInt(datiPod.misura.ea.get(0).valore);
+                                lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
+                                switch (datiPod.datiPdp.trattamento) {
+                                    case "O" -> lettura.setTipoContatore(TipoContatore.ORARIO);
+                                    case "F" -> lettura.setTipoContatore(TipoContatore.FASCIA);
+                                    case "M" -> lettura.setTipoContatore(TipoContatore.MONORARIO);
+                                }
+                                lettura.setUtile(true);
+                                switch (datiPod.misura.tipoDato) {
+                                    case "E" -> lettura.setTipoLettura(TipoLettura.REALE);
+                                    case "S" -> lettura.setTipoLettura(TipoLettura.STIMA);
+                                }
+                                lettura.setRaccolta(datiPod.misura.raccolta);
+                                lettura.setTipoDato(datiPod.misura.tipoDato);
+                                lettura.setCausaOstativa(datiPod.misura.causaOstativa);
+                                lettura.setValidato(datiPod.misura.validato);
+                                lettura.setPotMax(datiPod.misura.potMax);
+                                lettura.setEaF1(Double.parseDouble(datiPod.misura.eaF1));
+                                lettura.setEaF2(Double.parseDouble(datiPod.misura.eaF2));
+                                lettura.setEaF3(Double.parseDouble(datiPod.misura.eaF3));
+                                lettura.setErF1(Double.parseDouble(datiPod.misura.erF1));
+                                lettura.setErF2(Double.parseDouble(datiPod.misura.erF2));
+                                lettura.setErF3(Double.parseDouble(datiPod.misura.erF3));
+                                lettura.setPotF1(Double.parseDouble(datiPod.misura.potF1));
+                                lettura.setPotF2(Double.parseDouble(datiPod.misura.potF2));
+                                lettura.setPotF3(Double.parseDouble(datiPod.misura.potF3));
+
                                 System.out.println(file.getName());
                                 System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
                                 System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
+
+                                letturaRepository.save(lettura);
                             }
-                        } catch (Exception ignored) {
+                        } catch (Exception e) {
+                            log.debug("lettura non importata da file xml - " + e.getMessage());
                         }
                     }
                 }

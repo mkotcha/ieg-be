@@ -20,7 +20,8 @@ import java.util.List;
 @Setter
 public class Lettura {
     @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    @GeneratedValue(strategy = GenerationType.AUTO)
+//    @Column(name = "id", insertable = true, updatable = true, unique = true, nullable = false)
     private long id;
 
     @Column(name = "is_utile", nullable = true)
@@ -81,7 +82,7 @@ public class Lettura {
 
     @ManyToOne
     @JoinColumn(name = "fornitura_pod", nullable = false)
-    @JsonIgnore
+//    @JsonIgnore
     private Fornitura fornitura;
 
     @ManyToMany()

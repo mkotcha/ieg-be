@@ -102,7 +102,7 @@ public class Runner implements CommandLineRunner {
                 lettura.setPotF1(Double.parseDouble(letturaModel.getPF1()));
                 lettura.setPotF2(Double.parseDouble(letturaModel.getPF2()));
                 lettura.setPotF3(Double.parseDouble(letturaModel.getPF3()));
-
+                lettura.setUtile(true);
                 letturaService.save(lettura);
             } catch (Exception e) {
                 log.debug("lettura non importata - " + e.getMessage());
