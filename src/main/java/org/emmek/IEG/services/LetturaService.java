@@ -49,15 +49,15 @@ public class LetturaService {
     public String uploadFlussi(MultipartFile body) throws IOException, JAXBException {
         String destination = "data/uploads";
         deleteAllFilesInFolder(destination);
-        File zip = File.createTempFile(UUID.randomUUID().toString(), "temp");
-        System.out.println("zip: " + zip.getAbsolutePath());
+        File zip = File.createTempFile(UUID.randomUUID().toString(), "_tmp.zip");
+        log.debug("zip: " + zip.getAbsolutePath());
         FileOutputStream o = new FileOutputStream(zip);
         IOUtils.copy(body.getInputStream(), o);
         o.close();
 
         ZipFile zipFile = new ZipFile(zip);
         zipFile.extractAll(destination);
-        System.out.println("estratti ");
+        log.debug("estrazione completata");
 
         File folder = new File(destination);
         File[] listOfZipFiles = folder.listFiles(new FilenameFilter() {
@@ -75,68 +75,94 @@ public class LetturaService {
                     boolean deleted = file.delete();
                 }
             }
-            System.out.println("eliminati i file zip");
+            log.debug("eliminati i file zip");
         }
 
-        File[] listOfXmlFiles = folder.listFiles();
+        File[] listOfFiles = folder.listFiles();
 
-        if (listOfXmlFiles != null) {
-            System.out.println("trovati " + listOfXmlFiles.length + " file XML");
+        File[] listOfXmlFiles = folder.listFiles((dir, name) -> name.contains("_PDO") || name.contains("_PNO"));
+        if (listOfXmlFiles != null && listOfFiles != null) {
+            log.debug("esamino " + listOfXmlFiles.length + " file XML su " + listOfFiles.length);
             for (File file : listOfXmlFiles) {
-                if (file.isFile()) {
-                    FlussoMisure flussi = jaxbParser.parseXml(file.getAbsolutePath());
-                    for (DatiPod datiPod : flussi.datiPod) {
-                        try {
-                            Fornitura fornitura = fornituraService.finById(datiPod.pod);
-                            if (datiPod.misura.validato.equals("S") && datiPod.misura.ea.get(0).valore.equals("30")) {
-                                Lettura lettura = new Lettura();
-                                lettura.setFornitura(fornitura);
-                                String meseAnno = datiPod.meseAnno;
-                                int mese = Integer.parseInt(meseAnno.substring(0, 2));
-                                int anno = Integer.parseInt(meseAnno.substring(2, 6));
-                                int giorno = Integer.parseInt(datiPod.misura.ea.get(0).valore);
-                                lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
-                                switch (datiPod.datiPdp.trattamento) {
-                                    case "O" -> lettura.setTipoContatore(TipoContatore.ORARIO);
-                                    case "F" -> lettura.setTipoContatore(TipoContatore.FASCIA);
-                                    case "M" -> lettura.setTipoContatore(TipoContatore.MONORARIO);
-                                }
-                                lettura.setUtile(true);
-                                switch (datiPod.misura.tipoDato) {
-                                    case "E" -> lettura.setTipoLettura(TipoLettura.REALE);
-                                    case "S" -> lettura.setTipoLettura(TipoLettura.STIMA);
-                                }
-                                lettura.setRaccolta(datiPod.misura.raccolta);
-                                lettura.setTipoDato(datiPod.misura.tipoDato);
-                                lettura.setCausaOstativa(datiPod.misura.causaOstativa);
-                                lettura.setValidato(datiPod.misura.validato);
-                                lettura.setPotMax(datiPod.misura.potMax);
-                                lettura.setEaF1(Double.parseDouble(datiPod.misura.eaF1));
-                                lettura.setEaF2(Double.parseDouble(datiPod.misura.eaF2));
-                                lettura.setEaF3(Double.parseDouble(datiPod.misura.eaF3));
-                                lettura.setErF1(Double.parseDouble(datiPod.misura.erF1));
-                                lettura.setErF2(Double.parseDouble(datiPod.misura.erF2));
-                                lettura.setErF3(Double.parseDouble(datiPod.misura.erF3));
-                                lettura.setPotF1(Double.parseDouble(datiPod.misura.potF1));
-                                lettura.setPotF2(Double.parseDouble(datiPod.misura.potF2));
-                                lettura.setPotF3(Double.parseDouble(datiPod.misura.potF3));
+                FlussoMisure flussi = jaxbParser.parseXml(file.getAbsolutePath());
+                log.debug("file: " + file.getName());
+                for (DatiPod datiPod : flussi.datiPod) {
 
-                                System.out.println(file.getName());
-                                System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
-                                System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
+                    parseDatiPod(datiPod);
 
-                                letturaRepository.save(lettura);
-                            }
-                        } catch (Exception e) {
-                            log.debug("lettura non importata da file xml - " + e.getMessage());
-                        }
-                    }
                 }
             }
         }
 
-        System.out.println("finito");
+        log.debug("finito");
         return "fino a qui tutto bene...";
+    }
+
+    public void parseDatiPod(DatiPod datiPod) {
+        Lettura lettura = new Lettura();
+        Fornitura fornitura = null;
+        try {
+            fornitura = fornituraService.finById(datiPod.pod);
+        } catch (Exception ignore) {
+        }
+        int giorno;
+        if (datiPod.misura.ea != null) {
+            giorno = Integer.parseInt(datiPod.misura.ea.get(0).valore);
+        } else {
+            giorno = Integer.parseInt(datiPod.dataMisura.substring(0, 2));
+        }
+        if (fornitura != null
+                && datiPod.misura.validato.equals("S")
+                && giorno == 30) {
+            try {
+                log.debug("parsing...");
+                lettura.setId(getNextId());
+                lettura.setFornitura(fornitura);
+                int anno;
+                int mese;
+                if (datiPod.meseAnno != null) {
+                    String meseAnno = datiPod.meseAnno;
+                    mese = Integer.parseInt(meseAnno.substring(0, 2));
+                    anno = Integer.parseInt(meseAnno.substring(3, 7));
+                } else {
+                    String dataMisura = datiPod.dataMisura;
+                    mese = Integer.parseInt(dataMisura.substring(3, 5));
+                    anno = Integer.parseInt(dataMisura.substring(6, 10));
+                }
+                lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
+                switch (datiPod.datiPdp.trattamento) {
+                    case "O" -> lettura.setTipoContatore(TipoContatore.ORARIO);
+                    case "F" -> lettura.setTipoContatore(TipoContatore.FASCIA);
+                    case "M" -> lettura.setTipoContatore(TipoContatore.MONORARIO);
+                }
+                lettura.setUtile(true);
+                switch (datiPod.misura.tipoDato) {
+                    case "E" -> lettura.setTipoLettura(TipoLettura.REALE);
+                    case "S" -> lettura.setTipoLettura(TipoLettura.STIMA);
+                }
+                lettura.setRaccolta(datiPod.misura.raccolta);
+                lettura.setTipoDato(datiPod.misura.tipoDato);
+                lettura.setCausaOstativa(datiPod.misura.causaOstativa);
+                lettura.setValidato(datiPod.misura.validato);
+                lettura.setPotMax(datiPod.misura.potMax.replaceAll(",", "."));
+                lettura.setEaF1(Double.parseDouble(datiPod.misura.eaF1.replaceAll(",", ".")));
+                lettura.setEaF2(Double.parseDouble(datiPod.misura.eaF2.replaceAll(",", ".")));
+                lettura.setEaF3(Double.parseDouble(datiPod.misura.eaF3.replaceAll(",", ".")));
+                lettura.setErF1(Double.parseDouble(datiPod.misura.erF1.replaceAll(",", ".")));
+                lettura.setErF2(Double.parseDouble(datiPod.misura.erF2.replaceAll(",", ".")));
+                lettura.setErF3(Double.parseDouble(datiPod.misura.erF3.replaceAll(",", ".")));
+                lettura.setPotF1(Double.parseDouble(datiPod.misura.potF1.replaceAll(",", ".")));
+                lettura.setPotF2(Double.parseDouble(datiPod.misura.potF2.replaceAll(",", ".")));
+                lettura.setPotF3(Double.parseDouble(datiPod.misura.potF3.replaceAll(",", ".")));
+
+                log.debug(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
+                log.debug("lettura del " + giorno + "/" + mese + "/" + anno);
+
+                letturaRepository.save(lettura);
+            } catch (Exception e) {
+                log.error("lettura non importata da file xml - " + e.getMessage());
+            }
+        }
     }
 
     private void deleteAllFilesInFolder(String folderPath) {
@@ -145,10 +171,18 @@ public class LetturaService {
         if (files != null) { //some JVMs return null for empty directories
             for (File f : files) {
                 if (f.isFile()) {
-                    f.delete();
+                    boolean isDeleted = f.delete();
+                    if (!isDeleted) {
+                        log.error("Failed to delete file: " + f.getName());
+                    }
                 }
             }
         }
+    }
+
+    public long getNextId() {
+        Long maxId = letturaRepository.findMaxId();
+        return (maxId == null ? 1 : maxId + 1);
     }
 
     public void save(Lettura lettura) {

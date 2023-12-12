@@ -70,8 +70,6 @@ public class Runner implements CommandLineRunner {
         importClienti();
         importForniture();
         importLetture();
-//        FlussoMisure flussoMisure = unmarshal();
-//        System.out.println(flussoMisure.toString());
     }
 
     private void importLetture() {
