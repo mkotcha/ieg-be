@@ -83,11 +83,11 @@ public class LetturaService {
                     for (DatiPod datiPod : flussi.datiPod) {
                         try {
                             Fornitura fornitura = fornituraService.finById(datiPod.pod);
-//                            if (datiPod.misura.ea.get(0).valore.equals("31")) {
-                            System.out.println(file.getName());
-                            System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
-                            System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
-//                            }
+                            if (datiPod.misura.validato.equals("S")) {
+                                System.out.println(file.getName());
+                                System.out.println(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
+                                System.out.println("misura del " + datiPod.misura.ea.get(0).valore);
+                            }
                         } catch (Exception ignored) {
                         }
                     }

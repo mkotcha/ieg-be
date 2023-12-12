@@ -10,6 +10,9 @@ import lombok.*;
 @ToString
 public class LetturaModel {
 
+    @ExcelCellName("id")
+    private long id;
+
     @ExcelCellName("POD")
     private String pod;
 

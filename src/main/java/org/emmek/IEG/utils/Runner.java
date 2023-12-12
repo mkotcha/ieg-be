@@ -69,14 +69,13 @@ public class Runner implements CommandLineRunner {
         crateAdminIfNotExist(username);
         importClienti();
         importForniture();
-//        importLetture();
+        importLetture();
 //        FlussoMisure flussoMisure = unmarshal();
 //        System.out.println(flussoMisure.toString());
     }
 
     private void importLetture() {
         List<LetturaModel> letture = Poiji.fromExcel(new File("data/letture.xlsx"), LetturaModel.class);
-
         for (LetturaModel letturaModel : letture) {
             try {
                 Fornitura fornitura = fornituraService.finById(letturaModel.getPod());
@@ -91,6 +90,7 @@ public class Runner implements CommandLineRunner {
                 if (letturaModel.getTipo().equals("NEW")) {
                     lettura.setTipoLettura(TipoLettura.CAMBIO);
                 }
+                lettura.setId(letturaModel.getId());
                 lettura.setDataLettura(LocalDate.parse(letturaModel.getData()));
                 lettura.setTipoContatore(TipoContatore.FASCIA);
                 lettura.setEaF1(Double.parseDouble(letturaModel.getF1()));
@@ -105,7 +105,7 @@ public class Runner implements CommandLineRunner {
 
                 letturaService.save(lettura);
             } catch (Exception e) {
-                log.debug("lettura non importata - pod: " + letturaModel.getPod());
+                log.debug("lettura non importata - " + e.getMessage());
             }
 
         }

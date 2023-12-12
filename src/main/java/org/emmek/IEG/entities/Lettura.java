@@ -20,7 +20,7 @@ import java.util.List;
 @Setter
 public class Lettura {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
     @Column(name = "is_utile", nullable = true)
