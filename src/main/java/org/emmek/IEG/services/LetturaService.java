@@ -41,8 +41,8 @@ public class LetturaService {
 //    private Function<String, FlussoMisure> parseXmlFunction;
     private JaxbParser jaxbParser;
 
-    public Page<Lettura> findAll(int page, int size, String sort) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
+    public Page<Lettura> findAll(int page, int size, Sort sort) {
+        Pageable pageable = PageRequest.of(page, size, sort);
         return letturaRepository.findAll(pageable);
     }
 
