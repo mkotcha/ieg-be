@@ -17,6 +17,12 @@ public class DatiPod {
     @XmlElement(name = "MeseAnno")
     public String meseAnno;
 
+    @XmlElement(name = "DataMisura")
+    public String dataMisura;
+
+    @XmlElement(name = "DatiPdp")
+    public DatiPdp datiPdp;
+
     @XmlElement(name = "Misura")
     public Misura misura;
 

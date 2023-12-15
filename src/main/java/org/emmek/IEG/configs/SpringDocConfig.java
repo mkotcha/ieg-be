@@ -4,11 +4,13 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@Slf4j
 public class SpringDocConfig {
 
     @Value("${OPENAPI_TOKEN}")
@@ -27,5 +29,7 @@ public class SpringDocConfig {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")));
     }
+
+
 }
 
