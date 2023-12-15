@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/forniture")
 public class FornitureController {
@@ -20,5 +22,10 @@ public class FornitureController {
                                       @RequestParam(defaultValue = "10") int size,
                                       @RequestParam(defaultValue = "id") String sort) {
         return fornituraService.findAll(page, size, sort);
+    }
+
+    @GetMapping("/listapod")
+    public List<String> getListaPod() {
+        return fornituraService.getListaPod();
     }
 }

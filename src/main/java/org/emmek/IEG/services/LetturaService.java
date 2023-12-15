@@ -9,8 +9,10 @@ import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.entities.Lettura;
 import org.emmek.IEG.enums.TipoContatore;
 import org.emmek.IEG.enums.TipoLettura;
+import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.helpers.xml.DatiPod;
 import org.emmek.IEG.helpers.xml.FlussoMisure;
+import org.emmek.IEG.payloads.LetturaPostDTO;
 import org.emmek.IEG.repositories.LetturaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -187,5 +189,78 @@ public class LetturaService {
 
     public void save(Lettura lettura) {
         letturaRepository.save(lettura);
+    }
+
+    public Lettura save(LetturaPostDTO body) {
+        Lettura lettura = new Lettura();
+        Fornitura fornitura = null;
+        try {
+            fornitura = fornituraService.finById(body.pod());
+        } catch (Exception ignore) {
+        }
+        lettura.setId(getNextId());
+        lettura.setFornitura(fornitura);
+        lettura.setDataLettura(LocalDate.parse(body.dataLettura()));
+        lettura.setTipoContatore(TipoContatore.valueOf(body.tipoContatore()));
+        lettura.setUtile(true);
+        lettura.setTipoLettura(TipoLettura.valueOf(body.tipoLettura()));
+        lettura.setRaccolta(body.raccolta());
+        lettura.setTipoDato(body.tipoDato());
+        lettura.setValidato(body.validato());
+        double potF1 = Double.parseDouble(body.potF1().replaceAll(",", "."));
+        double potF2 = Double.parseDouble(body.potF2().replaceAll(",", "."));
+        double potF3 = Double.parseDouble(body.potF3().replaceAll(",", "."));
+        double potMax = Math.max(potF1, Math.max(potF2, potF3));
+        lettura.setPotMax(String.valueOf(potMax));
+        lettura.setEaF1(Double.parseDouble(body.eaF1().replaceAll(",", ".")));
+        lettura.setEaF2(Double.parseDouble(body.eaF2().replaceAll(",", ".")));
+        lettura.setEaF3(Double.parseDouble(body.eaF3().replaceAll(",", ".")));
+        lettura.setErF1(Double.parseDouble(body.erF1().replaceAll(",", ".")));
+        lettura.setErF2(Double.parseDouble(body.erF2().replaceAll(",", ".")));
+        lettura.setErF3(Double.parseDouble(body.erF3().replaceAll(",", ".")));
+        lettura.setPotF1(potF1);
+        lettura.setPotF2(potF2);
+        lettura.setPotF3(potF3);
+        lettura.setNote(body.note());
+
+        return letturaRepository.save(lettura);
+    }
+
+    public void delete(Long id) {
+        Lettura lettura = letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
+        letturaRepository.delete(lettura);
+    }
+
+    public Lettura get(long id) {
+        return letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
+
+    }
+
+    public Lettura update(long id, LetturaPostDTO body) {
+        Lettura lettura = letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
+        lettura.setDataLettura(LocalDate.parse(body.dataLettura()));
+        lettura.setTipoContatore(TipoContatore.valueOf(body.tipoContatore()));
+        lettura.setUtile(true);
+        lettura.setTipoLettura(TipoLettura.valueOf(body.tipoLettura()));
+        lettura.setRaccolta(body.raccolta());
+        lettura.setTipoDato(body.tipoDato());
+        lettura.setValidato(body.validato());
+        double potF1 = Double.parseDouble(body.potF1().replaceAll(",", "."));
+        double potF2 = Double.parseDouble(body.potF2().replaceAll(",", "."));
+        double potF3 = Double.parseDouble(body.potF3().replaceAll(",", "."));
+        double potMax = Math.max(potF1, Math.max(potF2, potF3));
+        lettura.setPotMax(String.valueOf(potMax));
+        lettura.setEaF1(Double.parseDouble(body.eaF1().replaceAll(",", ".")));
+        lettura.setEaF2(Double.parseDouble(body.eaF2().replaceAll(",", ".")));
+        lettura.setEaF3(Double.parseDouble(body.eaF3().replaceAll(",", ".")));
+        lettura.setErF1(Double.parseDouble(body.erF1().replaceAll(",", ".")));
+        lettura.setErF2(Double.parseDouble(body.erF2().replaceAll(",", ".")));
+        lettura.setErF3(Double.parseDouble(body.erF3().replaceAll(",", ".")));
+        lettura.setPotF1(potF1);
+        lettura.setPotF2(potF2);
+        lettura.setPotF3(potF3);
+        lettura.setNote(body.note());
+
+        return letturaRepository.save(lettura);
     }
 }

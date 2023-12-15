@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class FornituraService {
 
@@ -26,5 +28,9 @@ public class FornituraService {
 
     public Fornitura finById(String pod) {
         return fornituraRepository.findById(pod).orElseThrow(() -> new RuntimeException("Fornitura con id: " + pod + " non trovata"));
+    }
+
+    public List<String> getListaPod() {
+        return fornituraRepository.getListaPod();
     }
 }
