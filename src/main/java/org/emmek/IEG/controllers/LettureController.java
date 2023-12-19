@@ -3,7 +3,7 @@ package org.emmek.IEG.controllers;
 import jakarta.xml.bind.JAXBException;
 import org.emmek.IEG.entities.Lettura;
 import org.emmek.IEG.exceptions.BadRequestException;
-import org.emmek.IEG.payloads.LetturaPostDTO;
+import org.emmek.IEG.payloads.LetturaDTO;
 import org.emmek.IEG.services.LetturaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -45,7 +45,7 @@ public class LettureController {
 
     @PostMapping("")
     @ResponseStatus(HttpStatus.CREATED)
-    public Lettura save(@RequestBody @Validated LetturaPostDTO body, BindingResult validation) {
+    public Lettura save(@RequestBody @Validated LetturaDTO body, BindingResult validation) {
         if (validation.hasErrors()) {
             throw new BadRequestException(validation.getAllErrors());
         } else {
@@ -66,7 +66,7 @@ public class LettureController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public Lettura update(@PathVariable long id, @RequestBody @Validated LetturaPostDTO body, BindingResult validation) {
+    public Lettura update(@PathVariable long id, @RequestBody @Validated LetturaDTO body, BindingResult validation) {
         if (validation.hasErrors()) {
             throw new BadRequestException(validation.getAllErrors());
         } else {

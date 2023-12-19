@@ -1,6 +1,6 @@
 package org.emmek.IEG.payloads;
 
-public record LetturaPostDTO(
+public record LetturaDTO(
 
         String pod,
         String dataLettura,
@@ -22,5 +22,5 @@ public record LetturaPostDTO(
 
 
 ) {
-    
+
 }
