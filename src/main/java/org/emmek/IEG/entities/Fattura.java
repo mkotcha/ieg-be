@@ -20,21 +20,27 @@ public class Fattura {
     @Column(name = "id")
     private long id;
 
+    @Column(name = "numero_fattura", nullable = false)
+    private String numeroFattura;
+
+    @Column(name = "mese", nullable = false)
+    private int mese;
+
+    @Column(name = "anno", nullable = false)
+    private int anno;
+
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
 
-    @ManyToMany(mappedBy = "fatture")
-    private List<Fornitura> forniture;
+    @OneToMany(mappedBy = "fattura")
+    private List<FatturaSingola> fattureSingole;
 
-    @ManyToOne
-    @JoinColumn(name = "dispacciamento_id", nullable = false)
-    private Dispacciamento dispacciamento;
+    public void addFatturaSingola(FatturaSingola fatturaSingola) {
+        if (fattureSingole == null) {
+            fattureSingole = new java.util.ArrayList<>();
+        }
+        fattureSingole.add(fatturaSingola);
 
-    @ManyToOne
-    @JoinColumn(name = "oneri_id", nullable = false)
-    private Oneri oneri;
-
-    @ManyToMany(mappedBy = "fatture")
-    private List<Lettura> letture;
+    }
 }

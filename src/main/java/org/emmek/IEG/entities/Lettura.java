@@ -64,15 +64,18 @@ public class Lettura {
     @JoinColumn(name = "fornitura_pod", nullable = false)
 //    @JsonIgnore
     private Fornitura fornitura;
+
     @ManyToMany()
     @JoinTable(
-            name = "letture_fatture",
+            name = "letture_fatture_singole",
             joinColumns = @JoinColumn(name = "lettura_id"),
             inverseJoinColumns = @JoinColumn(name = "fattura_id")
     )
     @JsonIgnore
-    private List<Fattura> fatture;
+    private List<FatturaSingola> fattureSingole;
+
+
     @OneToMany(mappedBy = "lettura")
     private List<LetturaOraria> lettureOrarie;
-    
+
 }

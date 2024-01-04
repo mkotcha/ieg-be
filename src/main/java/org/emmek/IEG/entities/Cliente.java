@@ -1,9 +1,7 @@
 package org.emmek.IEG.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -46,4 +44,8 @@ public class Cliente {
 
     @Column(name = "email", nullable = true)
     private String email;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "cliente")
+    private java.util.List<Fornitura> forniture;
 }
