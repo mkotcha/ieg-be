@@ -36,7 +36,7 @@ public class ClientiController {
                 if (anno == null) anno = LocalDate.now().getYear();
             }
         }
-        return clienteService.setFattura(id, mese, anno);
+        return clienteService.newFattura(id, mese, anno);
     }
 }
 

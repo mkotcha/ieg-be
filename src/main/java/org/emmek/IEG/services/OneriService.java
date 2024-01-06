@@ -1,5 +1,6 @@
 package org.emmek.IEG.services;
 
+import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.entities.Oneri;
 import org.emmek.IEG.enums.BTA;
 import org.emmek.IEG.exceptions.NotFoundException;
@@ -71,5 +72,11 @@ public class OneriService {
 
     public Oneri findById(long id) {
         return oneriRepository.findById(id).orElseThrow(() -> new NotFoundException("Voce non trovata"));
+    }
+
+    public Oneri getOneri(Fornitura fornitura, Integer mese, Integer anno) {
+        int trimestre = (mese - 1) / 3 + 1;
+        return oneriRepository.findByTipoAndTrimestreAndAnno(fornitura.getBta(), trimestre, anno)
+                .orElseThrow(() -> new NotFoundException("Oneri BTA: " + fornitura.getBta() + " - trimestre: " + trimestre + " - anno: " + anno + " non trovati"));
     }
 }

@@ -1,5 +1,6 @@
 package org.emmek.IEG.repositories;
 
+import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.entities.Lettura;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,5 +14,7 @@ public interface LetturaRepository extends JpaRepository<Lettura, Long> {
     Long findMaxId();
 
 
-    List<Lettura> findByFornituraIdAndDataLetturaBetween(String id, LocalDate from, LocalDate to);
+    List<Lettura> findByFornituraAndDataLetturaBetween(Fornitura fornitura, LocalDate from, LocalDate to);
+
+    List<Lettura> findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(Fornitura fornitura, LocalDate from, LocalDate to);
 }

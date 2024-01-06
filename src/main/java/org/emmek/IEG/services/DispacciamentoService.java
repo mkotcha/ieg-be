@@ -59,4 +59,8 @@ public class DispacciamentoService {
 
         return dispacciamentoRepository.save(dispacciamento);
     }
+
+    public Dispacciamento findByTrimestreAndAnno(int trimestre, Integer anno) {
+        return dispacciamentoRepository.findByTrimestreAndAnno(trimestre, anno).orElseThrow(() -> new NotFoundException("Dispacciamento trimestre: " + trimestre + " - anno: " + anno + "non trovato"));
+    }
 }

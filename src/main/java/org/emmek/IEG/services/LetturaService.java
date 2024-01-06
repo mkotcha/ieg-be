@@ -27,6 +27,10 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -263,4 +267,49 @@ public class LetturaService {
 
         return letturaRepository.save(lettura);
     }
+
+    public List<Lettura> getLetture(Fornitura fornitura, int mese, int anno) {
+        LocalDate from;
+        LocalDate to;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        if (mese == 1) {
+            from = LocalDate.parse((anno - 1) + "-12-15", formatter);
+        } else {
+            from = LocalDate.parse(anno + "-" + String.format("%02d", mese - 1) + "-15", formatter);
+        }
+        if (mese == 12) {
+            to = LocalDate.parse((anno + 1) + "-01-15", formatter);
+        } else {
+            to = LocalDate.parse(anno + "-" + String.format("%02d", mese + 1) + "-15", formatter);
+        }
+        return letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
+    }
+
+    public Map<String, Double> getConsumi(List<Lettura> letture) {
+        Map<String, Double> consumi = new HashMap<>();
+        if (letture.size() < 2) throw new RuntimeException("Non ci sono abbastanza letture per calcolare il consumo");
+        if (letture.size() > 2) throw new RuntimeException("Troppe Letture per calcolare il consumo");
+        Lettura letturaLast = letture.get(0);
+        Lettura letturaOld = letture.get(1);
+        consumi.put("EaF1", letturaLast.getEaF1() - letturaOld.getEaF1());
+        consumi.put("EaF2", letturaLast.getEaF2() - letturaOld.getEaF2());
+        consumi.put("EaF3", letturaLast.getEaF3() - letturaOld.getEaF3());
+        consumi.put("ErF1", letturaLast.getErF1() - letturaOld.getErF1());
+        consumi.put("ErF2", letturaLast.getErF2() - letturaOld.getErF2());
+        consumi.put("ErF3", letturaLast.getErF3() - letturaOld.getErF3());
+        double consumoTot = consumi.get("ErF1") + consumi.get("ErF2") + consumi.get("ErF3");
+        double consumoTotr = consumi.get("ErF1") + consumi.get("ErF2") + consumi.get("ErF3");
+        double potMax = Math.max(letturaLast.getPotF1(), Math.max(letturaLast.getPotF2(), letturaLast.getPotF3()));
+        consumi.put("consumoTot", consumoTot);
+        consumi.put("consumoTotr", consumoTotr);
+        consumi.put("potMax", potMax);
+
+        if (consumoTotr > 0) {
+            double percentualeReattiva = (consumi.get("consumoTotr") / consumi.get("consumoTot")) * 100;
+            System.out.println("percentualeReattiva: " + percentualeReattiva);
+            consumi.put("percentualeReattiva", percentualeReattiva);
+        }
+        return consumi;
+    }
+
 }

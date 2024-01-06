@@ -59,8 +59,10 @@ public class FatturaSingola {
     @ManyToMany(mappedBy = "fattureSingole")
     private List<Lettura> letture;
 
+
     public void setConsumo() {
 
     }
+
 
 }
