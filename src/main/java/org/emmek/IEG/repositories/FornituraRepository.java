@@ -1,5 +1,6 @@
 package org.emmek.IEG.repositories;
 
+import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fornitura;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,4 +16,6 @@ public interface FornituraRepository extends JpaRepository<Fornitura, String> {
 
     @Query("SELECT id FROM Fornitura")
     List<String> getListaPod();
+
+    List<Fornitura> findByCliente(Cliente cliente);
 }

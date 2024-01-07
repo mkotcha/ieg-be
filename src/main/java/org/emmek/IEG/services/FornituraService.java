@@ -1,5 +1,6 @@
 package org.emmek.IEG.services;
 
+import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.repositories.FornituraRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,5 +37,9 @@ public class FornituraService {
 
     public Fornitura findById(String id) {
         return fornituraRepository.findById(id).orElseThrow(() -> new RuntimeException("Fornitura con id: " + id + " non trovata"));
+    }
+
+    public List<Fornitura> findByCliente(Cliente cliente) {
+        return fornituraRepository.findByCliente(cliente);
     }
 }

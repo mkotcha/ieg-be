@@ -2,18 +2,24 @@ package org.emmek.IEG.controllers;
 
 import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fattura;
+import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.services.ClienteService;
+import org.emmek.IEG.services.FornituraService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/clienti")
-public class ClientiController {
+public class ClienteController {
     @Autowired
     private ClienteService clienteService;
+
+    @Autowired
+    private FornituraService fornituraService;
 
     @GetMapping("")
     public Page<Cliente> getClienti(@RequestParam(defaultValue = "0") int page,
@@ -41,7 +47,12 @@ public class ClientiController {
 
     @GetMapping("{id}")
     public Cliente getCliente(@PathVariable String id) {
-        return clienteService.findById(Long.parseLong(id));
+        return clienteService.findById(id);
+    }
+
+    @GetMapping("/{id}/forniture")
+    public List<Fornitura> getForniture(@PathVariable String id) {
+        return fornituraService.findByCliente(clienteService.findById(id));
     }
 
 
