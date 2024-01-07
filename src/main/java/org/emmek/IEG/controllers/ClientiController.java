@@ -38,5 +38,12 @@ public class ClientiController {
         }
         return clienteService.newFattura(id, mese, anno);
     }
+
+    @GetMapping("{id}")
+    public Cliente getCliente(@PathVariable String id) {
+        return clienteService.findById(Long.parseLong(id));
+    }
+
+
 }
 

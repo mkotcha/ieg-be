@@ -1,9 +1,11 @@
 package org.emmek.IEG.controllers;
 
 import jakarta.xml.bind.JAXBException;
+import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.entities.Lettura;
 import org.emmek.IEG.exceptions.BadRequestException;
 import org.emmek.IEG.payloads.LetturaDTO;
+import org.emmek.IEG.services.FornituraService;
 import org.emmek.IEG.services.LetturaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/letture")
@@ -23,6 +26,9 @@ public class LettureController {
 
     @Autowired
     private LetturaService letturaService;
+
+    @Autowired
+    private FornituraService fornituraService;
 
     @GetMapping("")
     public Page<Lettura> getLetture(@RequestParam(defaultValue = "0") int page,
@@ -72,5 +78,23 @@ public class LettureController {
         } else {
             return letturaService.update(id, body);
         }
+    }
+
+    @GetMapping("/conta/{fornituraId}")
+    public int contaLetture(@PathVariable String fornituraId,
+                            @RequestParam(defaultValue = "0") int mese,
+                            @RequestParam(defaultValue = "0") int anno) {
+        if (mese == 0 || anno == 0) {
+            if (LocalDate.now().getMonthValue() == 1) {
+                mese = 12;
+                if (anno == 0) anno = LocalDate.now().getYear() - 1;
+                else anno = anno - 1;
+            } else {
+                mese = LocalDate.now().getMonthValue() - 1;
+                anno = LocalDate.now().getYear();
+            }
+        }
+        Fornitura fornitura = fornituraService.findById(fornituraId);
+        return letturaService.contaLetture(fornitura, mese, anno);
     }
 }

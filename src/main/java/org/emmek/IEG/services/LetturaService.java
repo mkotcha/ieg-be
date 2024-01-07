@@ -282,8 +282,29 @@ public class LetturaService {
         } else {
             to = LocalDate.parse(anno + "-" + String.format("%02d", mese + 1) + "-15", formatter);
         }
-        return letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
+        List<Lettura> letture = letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
+        if (letture.size() < 2)
+            throw new RuntimeException(fornitura.getId() + " non ci sono abbastanza letture per calcolare il consumo");
+        return letture;
     }
+
+    public int contaLetture(Fornitura fornitura, int mese, int anno) {
+        LocalDate from;
+        LocalDate to;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        if (mese == 1) {
+            from = LocalDate.parse((anno - 1) + "-12-15", formatter);
+        } else {
+            from = LocalDate.parse(anno + "-" + String.format("%02d", mese - 1) + "-15", formatter);
+        }
+        if (mese == 12) {
+            to = LocalDate.parse((anno + 1) + "-01-15", formatter);
+        } else {
+            to = LocalDate.parse(anno + "-" + String.format("%02d", mese + 1) + "-15", formatter);
+        }
+        return letturaRepository.countByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
+    }
+
 
     public Map<String, Double> getConsumi(List<Lettura> letture) {
         Map<String, Double> consumi = new HashMap<>();

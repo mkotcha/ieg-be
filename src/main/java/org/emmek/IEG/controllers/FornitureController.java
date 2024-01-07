@@ -4,10 +4,7 @@ import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.services.FornituraService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -27,5 +24,10 @@ public class FornitureController {
     @GetMapping("/listapod")
     public List<String> getListaPod() {
         return fornituraService.getListaPod();
+    }
+
+    @GetMapping("{id}")
+    public Fornitura getFornitura(@PathVariable String id) {
+        return fornituraService.findById(id);
     }
 }

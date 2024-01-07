@@ -4,7 +4,12 @@ import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fattura;
 import org.emmek.IEG.entities.FatturaSingola;
 import org.emmek.IEG.entities.Fornitura;
+import org.emmek.IEG.repositories.FatturaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,6 +17,9 @@ import java.util.Map;
 
 @Service
 public class FatturaService {
+
+    @Autowired
+    private FatturaRepository fatturaRepository;
 
     @Autowired
     private LetturaService letturaService;
@@ -51,5 +59,10 @@ public class FatturaService {
             fattura.addFatturaSingola(fatturaSingola);
         });
         return fattura;
+    }
+
+    public Page<Fattura> findAll(int page, int size, String sort) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
+        return fatturaRepository.findAll(pageable);
     }
 }

@@ -33,4 +33,8 @@ public class FornituraService {
     public List<String> getListaPod() {
         return fornituraRepository.getListaPod();
     }
+
+    public Fornitura findById(String id) {
+        return fornituraRepository.findById(id).orElseThrow(() -> new RuntimeException("Fornitura con id: " + id + " non trovata"));
+    }
 }
