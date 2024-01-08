@@ -1,42 +1,36 @@
-import pandas as pd
+import os
 import sys
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
+import win32com.client
 
+# Get the directory of the script
+script_dir = os.path.dirname(os.path.realpath(__file__))
+parent_dir = os.path.dirname(script_dir)
 
-def excel_to_pdf(excel_file, pdf_file):
-    # Read the Excel file
-    df = pd.read_excel(excel_file)
+# Check if sufficient arguments are passed (including the script name)
+if len(sys.argv) < 3:
+    print("Usage: script_name.py [Excel file path] [PDF file path]")
+    sys.exit(1)  # Exit the script if the arguments are not provided
 
-    # Create a PDF canvas and set up basic parameters
-    c = canvas.Canvas(pdf_file, pagesize=letter)
-    width, height = letter
-    x_offset = 50  # Starting x-coordinate
-    y_offset = height - 50  # Starting y-coordinate
-    line_height = 20  # Height of each line
+# Assign command line arguments to variables
+excel_file_path = os.path.join(parent_dir, sys.argv[1])
+pdf_file_path = os.path.join(parent_dir, sys.argv[2])
 
-    # Write the column headers
-    for i, column in enumerate(df.columns):
-        c.drawString(x_offset + (i * 100), y_offset, str(column))
-    y_offset -= line_height
+# Create an Excel Application object
+o = win32com.client.Dispatch("Excel.Application")
+o.Visible = False  # Excel will run in the background
 
-    # Write the data rows
-    for index, row in df.iterrows():
-        for i, value in enumerate(row):
-            c.drawString(x_offset + (i * 100), y_offset, str(value))
-        y_offset -= line_height
-        if y_offset < 50:  # Start a new page if the current one is full
-            c.showPage()
-            y_offset = height - 50
+# Open the workbook
+wb = o.Workbooks.Open(excel_file_path)
 
-    # Save the PDF
-    c.save()
+# Select all sheets in the workbook
+wb.Worksheets.Select()
 
+# Export all selected sheets as a PDF
+wb.ActiveSheet.ExportAsFixedFormat(0, pdf_file_path)
 
-# Example usage
-if len(sys.argv) == 3:
-    excel_file_path = sys.argv[1]
-    pdf_file_path = sys.argv[2]
-    excel_to_pdf(excel_file_path, pdf_file_path)
-else:
-    print("Usage: python excel2pdf.py [excel_file_path] [pdf_file_path]")
+# Clean up: Close the workbook and quit Excel
+wb.Close(SaveChanges=False)  # Close the workbook without saving changes
+o.Quit()
+
+# Print the name of the PDF file
+print(f"PDF file created: {pdf_file_path}")
