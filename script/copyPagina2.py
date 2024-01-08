@@ -1,26 +1,26 @@
-import openpyxl
 import sys
+import xlwings as xw
 
-def copy_first_sheet(source_file, destination_file):
-    # Load the source workbook
-    source_workbook = openpyxl.load_workbook(source_file)
-    # Get the first sheet from the source workbook
-    first_sheet_name = source_workbook.sheetnames[0]
-    source_sheet = source_workbook[first_sheet_name]
 
-    # Load the destination workbook
-    destination_workbook = openpyxl.load_workbook(destination_file)
+def copy_sheet_to_end_of_workbook(source_file, target_file):
+    # Open both workbooks
+    with xw.App(visible=False) as app:
+        source_wb = xw.Book(source_file)
+        target_wb = xw.Book(target_file)
 
-    # Copy the sheet to the destination workbook
-    target_sheet = destination_workbook.copy_worksheet(source_sheet)
+        # Copy first sheet of source to end of target workbook
+        source_wb.sheets[0].api.Copy(After=target_wb.sheets[-1].api)
 
-    # Save the destination workbook
-    destination_workbook.save(destination_file)
+        # Save and close
+        target_wb.save()
+        target_wb.close()
+        source_wb.close()
+
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: python script.py source_file destination_file")
+    if len(sys.argv) != 3:
+        print("Usage: python script.py source_file.xlsx target_file.xlsx")
     else:
         source_file = sys.argv[1]
-        destination_file = sys.argv[2]
-        copy_first_sheet(source_file, destination_file)
+        target_file = sys.argv[2]
+        copy_sheet_to_end_of_workbook(source_file, target_file)
