@@ -264,7 +264,6 @@ public class LetturaService {
         lettura.setPotF2(potF2);
         lettura.setPotF3(potF3);
         lettura.setNote(body.note());
-
         return letturaRepository.save(lettura);
     }
 
@@ -284,7 +283,7 @@ public class LetturaService {
         }
         List<Lettura> letture = letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
         if (letture.size() < 2)
-            throw new RuntimeException(fornitura.getId() + " non ci sono abbastanza letture per calcolare il consumo");
+            throw new RuntimeException(fornitura.getId() + " non ci sono abbastanza letture per calcolare il consumo per il mese " + mese + " dell'anno " + anno);
         return letture;
     }
 
@@ -305,7 +304,6 @@ public class LetturaService {
         return letturaRepository.countByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
     }
 
-
     public Map<String, Double> getConsumi(List<Lettura> letture) {
         Map<String, Double> consumi = new HashMap<>();
         if (letture.size() < 2) throw new RuntimeException("Non ci sono abbastanza letture per calcolare il consumo");
@@ -324,13 +322,18 @@ public class LetturaService {
         consumi.put("consumoTot", consumoTot);
         consumi.put("consumoTotr", consumoTotr);
         consumi.put("potMax", potMax);
-
         if (consumoTotr > 0) {
             double percentualeReattiva = (consumi.get("consumoTotr") / consumi.get("consumoTot")) * 100;
-            System.out.println("percentualeReattiva: " + percentualeReattiva);
             consumi.put("percentualeReattiva", percentualeReattiva);
         }
         return consumi;
+    }
+
+    public Map<String, Double> getConsumi(Fornitura fornitura, int mese) {
+        mese = mese + 1;
+        LocalDate date = LocalDate.now().minusMonths(mese);
+        List<Lettura> letture = getLetture(fornitura, date.getMonthValue(), date.getYear());
+        return getConsumi(letture);
     }
 
 }
