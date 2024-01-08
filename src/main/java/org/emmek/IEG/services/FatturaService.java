@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -36,8 +37,11 @@ public class FatturaService {
     @Autowired
     private FatturaSingolaRepository fatturaSingolaRepository;
 
+    @Autowired
+    private ExcelService excelService;
 
-    public Fattura newfattura(Cliente cliente, Integer mese, Integer anno) {
+
+    public Fattura newfattura(Cliente cliente, Integer mese, Integer anno) throws IOException {
         String numeroFattura = "AUEE" + anno +
                 String.format("%02d", mese) +
                 String.format("%03d", cliente.getId()) + "000";
@@ -77,6 +81,7 @@ public class FatturaService {
             fatturaSingolaRepository.save(fatturaSingola);
             fattura.addFatturaSingola(fatturaSingola);
         });
+        excelService.createFattura(fattura);
         return fattura;
     }
 

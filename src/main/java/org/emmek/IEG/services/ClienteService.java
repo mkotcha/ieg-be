@@ -10,6 +10,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+
 @Service
 public class ClienteService {
 
@@ -36,7 +38,7 @@ public class ClienteService {
         return clienteRepository.findById(Long.parseLong(idCliente)).orElseThrow(() -> new RuntimeException("Cliente con id: " + idCliente + " non trovato"));
     }
 
-    public Fattura newFattura(long id, Integer mese, Integer anno) {
+    public Fattura newFattura(long id, Integer mese, Integer anno) throws IOException {
         Cliente cliente = clienteRepository.findById(id).orElseThrow(() -> new RuntimeException("Cliente con id: " + id + " non trovato"));
         return fatturaService.newfattura(cliente, mese, anno);
     }

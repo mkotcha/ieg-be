@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class ClienteController {
     @GetMapping("/{id}/fattura")
     public Fattura setFattura(@PathVariable long id,
                               @RequestParam(required = false) Integer mese,
-                              @RequestParam(required = false) Integer anno) {
+                              @RequestParam(required = false) Integer anno) throws IOException {
         if (mese == null) {
             if (LocalDate.now().getMonthValue() == 1) {
                 mese = 12;

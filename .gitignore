@@ -35,3 +35,4 @@ env.properties
 **/*.log*
 /data/**
 *.xlsx
+*.xlsb
