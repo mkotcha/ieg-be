@@ -4,6 +4,7 @@ import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fattura;
 import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.services.ClienteService;
+import org.emmek.IEG.services.FatturaService;
 import org.emmek.IEG.services.FornituraService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,9 @@ public class ClienteController {
 
     @Autowired
     private FornituraService fornituraService;
+
+    @Autowired
+    private FatturaService fatturaService;
 
     @GetMapping("")
     public Page<Cliente> getClienti(@RequestParam(defaultValue = "0") int page,
@@ -55,6 +59,10 @@ public class ClienteController {
         return fornituraService.findByCliente(clienteService.findById(id));
     }
 
+    @GetMapping("/{id}/fatture")
+    public List<Fattura> getFatture(@PathVariable String id) {
+        return fatturaService.findByCliente(clienteService.findById(id));
+    }
 
 }
 
