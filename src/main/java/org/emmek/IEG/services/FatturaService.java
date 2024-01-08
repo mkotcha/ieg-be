@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +62,7 @@ public class FatturaService {
         List<Fornitura> forniture = cliente.getForniture();
         fattura.setMese(mese);
         fattura.setAnno(anno);
+        fattura.setDataFattura(LocalDate.now());
         fattura.setCliente(cliente);
         fattura.setNumeroFattura(numeroFattura);
         fatturaRepository.save(fattura);

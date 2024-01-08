@@ -6,16 +6,23 @@ import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.emmek.IEG.entities.Fattura;
 import org.emmek.IEG.entities.FatturaSingola;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
+import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @Slf4j
 public class ExcelService {
+
+    @Autowired
+    LetturaService letturaService;
 
     public Workbook createExcelFile() {
         Workbook workbook = new XSSFWorkbook();
@@ -81,13 +88,21 @@ public class ExcelService {
     public void writeCell(Workbook workbook, String sheetName, String cellName, String value) {
         Sheet sheet = workbook.getSheet(sheetName);
         Name namedCell = workbook.getName(cellName);
+        if (namedCell == null) {
+            log.error("Cell " + cellName + " not found");
+            return;
+        }
         CellReference cellReference = new CellReference(namedCell.getRefersToFormula());
         Row row = sheet.getRow(cellReference.getRow());
         Cell cell = row.getCell(cellReference.getCol());
         if (cell == null) {
             cell = row.createCell(cellReference.getCol());
         }
-        cell.setCellValue(value);
+        try {
+            cell.setCellValue(Double.parseDouble(value.replace(",", ".")));
+        } catch (NumberFormatException ignored) {
+            cell.setCellValue(value);
+        }
     }
 
     public void writePagina2(String fileName, FatturaSingola fatturaSingola) {
@@ -107,10 +122,34 @@ public class ExcelService {
             // CONSUMO ANNUO
             writeCell(workbook, sheetName, "distributore", fatturaSingola.getFornitura().getCodiceDistributore().getLabel());
             writeCell(workbook, sheetName, "pronto_intervento", fatturaSingola.getFornitura().getCodiceDistributore().getTelefono());
+            writeCell(workbook, sheetName, "data_lettura_old", fatturaSingola.getLetture().get(1).getDataLettura().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            writeCell(workbook, sheetName, "data_lettura", fatturaSingola.getLetture().get(0).getDataLettura().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+
+
+            if (fatturaSingola.getLetture().get(0).getTipoLettura().toString().equals("STIMATO")) {
+                writeCell(workbook, sheetName, "tipo_consumo", "Consumi stimati");
+            } else {
+                writeCell(workbook, sheetName, "tipo_consumo", "Consumi effettivi");
+            }
+
+            Period period = Period.between(fatturaSingola.getFattura().getDataFattura(), LocalDate.now());
+            int delta = period.getMonths() + 1;
+            for (int i = 0; i < 12; i++) {
+                Map<String, Double> consumi = letturaService.getConsumi(fatturaSingola.getFornitura(), i + delta);
+                writeCell(workbook, sheetName, "consumi_" + i + "_f1", String.format(it, "%.2f", consumi.get("EaF1")));
+                writeCell(workbook, sheetName, "consumi_" + i + "_f2", String.format(it, "%.2f", consumi.get("EaF2")));
+                writeCell(workbook, sheetName, "consumi_" + i + "_f3", String.format(it, "%.2f", consumi.get("EaF3")));
+            }
+            for (int i = 0; i < 12; i++) {
+                String meseStr = fatturaSingola.getFattura().getDataFattura().minusMonths(i + delta + 1).format(DateTimeFormatter.ofPattern("MMMM", it));
+                writeCell(workbook, sheetName, "mese_grafico_" + i, meseStr);
+            }
+
             saveWorkbookToFile(workbook, fileName);
         } catch (IOException e) {
             log.error("Error during workbook creation: " + e.getMessage());
         }
+
     }
 
     public void createFattura(Fattura fattura) throws IOException {

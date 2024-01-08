@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Entity
@@ -22,6 +23,9 @@ public class Fattura {
 
     @Column(name = "numero_fattura", nullable = false)
     private String numeroFattura;
+
+    @Column(name = "data_fattura", nullable = false)
+    private LocalDate dataFattura;
 
     @Column(name = "mese", nullable = false)
     private int mese;
