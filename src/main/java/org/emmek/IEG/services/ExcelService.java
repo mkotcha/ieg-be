@@ -54,7 +54,6 @@ public class ExcelService {
 
     public void addPagina2(String fileName) {
         try {
-            System.out.println(fileName);
             ProcessBuilder processBuilder = new ProcessBuilder("python", "script/copyPagina2.py", "template/pagina_2.xlsx", fileName);
             processBuilder.redirectErrorStream(true); // Redirect error stream to stdout
             Process process = processBuilder.start();
@@ -72,6 +71,29 @@ public class ExcelService {
         }
     }
 
+    public void save2Pdf(String fatturaFileName) {
+        String pdf = fatturaFileName.substring(0, fatturaFileName.lastIndexOf(".")) + ".pdf";
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("python", "script/excel2Pdf.py", fatturaFileName, pdf);
+            processBuilder.redirectErrorStream(true); // Redirect error stream to stdout
+            Process process = processBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                log.error("Python script execution failed with exit code: " + exitCode);
+            }
+        } catch (IOException | InterruptedException e) {
+            log.error("Error during Python script execution: " + e.getMessage());
+        }
+
+
+    }
+
     public void createFattura(Fattura fattura) throws IOException {
         String numeroFattura = fattura.getNumeroFattura();
         int mese = fattura.getMese();
@@ -83,7 +105,9 @@ public class ExcelService {
         for (FatturaSingola fatturaSingola : fattureSingole) {
             addPagina2(fatturaFileName);
         }
-        
+        save2Pdf(fatturaFileName);
 
+        // close file
+        fatturaXls.close();
     }
 }
