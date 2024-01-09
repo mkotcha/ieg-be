@@ -80,6 +80,9 @@ public class FatturaService {
             fatturaSingola.setConsumoF1r(consumi.get("ErF1"));
             fatturaSingola.setConsumoF2r(consumi.get("ErF2"));
             fatturaSingola.setConsumoF3r(consumi.get("ErF3"));
+            fatturaSingola.setConsumoTot(consumi.get("consumoTot"));
+            fatturaSingola.setPotenzaPrelevata(consumi.get("potMax"));
+            fatturaSingola.setImposte(consumi.get("consumoTot") * 0.0125);
             fatturaSingolaRepository.save(fatturaSingola);
             fattura.addFatturaSingola(fatturaSingola);
         });

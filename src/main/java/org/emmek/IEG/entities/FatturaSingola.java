@@ -48,6 +48,15 @@ public class FatturaSingola {
     @Column(name = "consumo_f3r")
     private double consumoF3r;
 
+    @Column(name = "consumo_tot")
+    private double consumoTot;
+
+    @Column(name = "potenza_prelevata")
+    private double potenzaPrelevata;
+
+    @Column(name = "imposte")
+    private double imposte;
+
     @ManyToOne
     @JoinColumn(name = "dispacciamento_id", nullable = false)
     private Dispacciamento dispacciamento;
