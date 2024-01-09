@@ -33,6 +33,33 @@ public class Fattura {
     @Column(name = "anno", nullable = false)
     private int anno;
 
+    @Column(name = "consumo_tot")
+    private double consumoTot;
+
+    @Column(name = "consumo_tot_perdite")
+    private double consumoTotP;
+
+    @Column(name = "consumo_tot_reattivo")
+    private double consumoTotR;
+
+    @Column(name = "potenza_prelevata")
+    private double potenzaPrelevata;
+
+    @Column(name = "totale_imposte")
+    private double totaleImposte;
+
+    @Column(name = "totale_materia")
+    private double totaleMateria;
+
+    @Column(name = "totale_trasporto")
+    private double totaleTrasporto;
+
+    @Column(name = "totale_oneri")
+    private double totaleOneri;
+
+    @Column(name = "totale_imponibile")
+    private double totaleImponibile;
+
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;

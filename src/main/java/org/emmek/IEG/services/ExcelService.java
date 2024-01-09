@@ -4,9 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.emmek.IEG.entities.Fattura;
-import org.emmek.IEG.entities.FatturaSingola;
-import org.emmek.IEG.entities.Pun;
+import org.emmek.IEG.entities.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,6 +25,7 @@ public class ExcelService {
 
     @Autowired
     PunService punService;
+
 
     public Workbook createExcelFile() {
         Workbook workbook = new XSSFWorkbook();
@@ -58,7 +57,7 @@ public class ExcelService {
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+                log.debug(line);
             }
             int exitCode = process.waitFor();
             if (exitCode != 0) {
@@ -71,6 +70,7 @@ public class ExcelService {
 
     public void save2Pdf(String fatturaFileName) {
         String pdf = fatturaFileName.substring(0, fatturaFileName.lastIndexOf(".")) + ".pdf";
+        log.debug("Avviata creazione file pdf: " + pdf);
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("python", "script/excel2Pdf.py", fatturaFileName, pdf);
             processBuilder.redirectErrorStream(true); // Redirect error stream to stdout
@@ -78,7 +78,7 @@ public class ExcelService {
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+                log.debug(line);
             }
             int exitCode = process.waitFor();
             if (exitCode != 0) {
@@ -122,10 +122,12 @@ public class ExcelService {
         if (cell == null) {
             cell = row.createCell(cellReference.getCol());
         }
-
-//            cell.setCellValue(Double.parseDouble(value.replace(",", ".")));
+//        try {
+//            cell.setCellValue(Double.toString(value).replace(",", "."));
+//        } catch (NumberFormatException ignored) {
+//            cell.setCellValue(value);
+//        }
         cell.setCellValue(value);
-
     }
 
     public void writePagina2(String fileName, FatturaSingola fatturaSingola) {
@@ -220,6 +222,56 @@ public class ExcelService {
             writeCell(workbook, sheetName, "consumo_F1", fatturaSingola.getConsumoF1());
             writeCell(workbook, sheetName, "consumo_F2", fatturaSingola.getConsumoF2());
             writeCell(workbook, sheetName, "consumo_F3", fatturaSingola.getConsumoF3());
+            writeCell(workbook, sheetName, "perdite_F1", fatturaSingola.getPerditeF1());
+            writeCell(workbook, sheetName, "perdite_F2", fatturaSingola.getPerditeF2());
+            writeCell(workbook, sheetName, "perdite_F3", fatturaSingola.getPerditeF3());
+            writeCell(workbook, sheetName, "consumo_tot", fatturaSingola.getConsumoTot());
+            writeCell(workbook, sheetName, "consumo_tot_perdite", fatturaSingola.getConsumoTotP());
+            writeCell(workbook, sheetName, "spread", fatturaSingola.getFornitura().getPrezzo().getSpread());
+            writeCell(workbook, sheetName, "commercializzazione", fatturaSingola.getFornitura().getProgrammazione().getCommercializzazione());
+            Dispacciamento dispacciamento = fatturaSingola.getDispacciamento();
+            writeCell(workbook, sheetName, "costo_am", dispacciamento.getCostoAm());
+            writeCell(workbook, sheetName, "MSD", dispacciamento.getMsd());
+            writeCell(workbook, sheetName, "sicurezza", dispacciamento.getSicurezza());
+            writeCell(workbook, sheetName, "eolico", dispacciamento.getEolico());
+            writeCell(workbook, sheetName, "DIS", dispacciamento.getDis());
+            writeCell(workbook, sheetName, "capacita", dispacciamento.getCapacita());
+            double parzialeMateria = fatturaSingola.getConsumoF1() * pun.getF1() +
+                    fatturaSingola.getConsumoF2() * pun.getF2() +
+                    fatturaSingola.getConsumoF3() * pun.getF3() +
+                    fatturaSingola.getPerditeF1() * pun.getF1() +
+                    fatturaSingola.getPerditeF2() * pun.getF2() +
+                    fatturaSingola.getPerditeF3() * pun.getF3() +
+                    fatturaSingola.getConsumoTotP() * fatturaSingola.getFornitura().getPrezzo().getSpread();
+            writeCell(workbook, sheetName, "formula_programmazione", fatturaSingola.getFornitura().getProgrammazione().getOneriProgrammazione() * parzialeMateria / 100);
+            writeCell(workbook, sheetName, "INT", dispacciamento.getInt73());
+            writeCell(workbook, sheetName, "totale_materia", fatturaSingola.getTotaleMateria());
+            Oneri oneri = fatturaSingola.getOneri();
+            writeCell(workbook, sheetName, "qf_tud", oneri.getQfTud());
+            writeCell(workbook, sheetName, "qf_mis", oneri.getQfMis());
+            writeCell(workbook, sheetName, "qp_tdm", oneri.getQpTdm());
+            writeCell(workbook, sheetName, "qe_tud", oneri.getQeTud());
+            writeCell(workbook, sheetName, "qe_uc3", oneri.getQeUc3());
+            writeCell(workbook, sheetName, "trasmissione", dispacciamento.getTrasmissione());
+            writeCell(workbook, sheetName, "totale_trasporto", fatturaSingola.getTotaleTrasporto());
+            writeCell(workbook, sheetName, "qf_asos", oneri.getQfAsos());
+            writeCell(workbook, sheetName, "qf_arim", oneri.getQfArim());
+            writeCell(workbook, sheetName, "qp_asos", oneri.getQpAsos());
+            writeCell(workbook, sheetName, "qp_arim", oneri.getQpArim());
+            writeCell(workbook, sheetName, "qe_asos", oneri.getQeAsos());
+            writeCell(workbook, sheetName, "qe_arim", oneri.getQeArim());
+            writeCell(workbook, sheetName, "totale_oneri", fatturaSingola.getTotaleOneri());
+            writeCell(workbook, sheetName, "totale_imposte", fatturaSingola.getTotaleImposte());
+            saveWorkbookToFile(workbook, fileName);
+        } catch (IOException e) {
+            log.error("Error during workbook creation: " + e.getMessage());
+        }
+    }
+
+    public void writePagina1(String fileName, FatturaSingola fatturaSingola) {
+        String sheetName = "riepilogo";
+        Locale it = new Locale("it", "IT");
+        try (Workbook workbook = WorkbookFactory.create(new FileInputStream(fileName))) {
 
 
         } catch (IOException e) {
@@ -227,11 +279,13 @@ public class ExcelService {
         }
     }
 
+
     public void createFattura(Fattura fattura) throws IOException {
         String numeroFattura = fattura.getNumeroFattura();
         int mese = fattura.getMese();
         int anno = fattura.getAnno();
         String fatturaFileName = "fatture/" + anno + "/" + mese + "/" + numeroFattura + ".xlsx";
+        log.debug("Avviata creazione file excel: " + fatturaFileName);
         Workbook fatturaXls = createExcelFile();
         saveWorkbookToFile(fatturaXls, fatturaFileName);
         fatturaXls.close();
@@ -243,6 +297,7 @@ public class ExcelService {
             writePagina3(fatturaFileName, fatturaSingola);
         }
         addPagina("template/pagina_1.xlsx", fatturaFileName, "");
+        writePagina1(fatturaFileName, fattura);
 
         save2Pdf(fatturaFileName);
 

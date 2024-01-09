@@ -51,11 +51,38 @@ public class FatturaSingola {
     @Column(name = "consumo_tot")
     private double consumoTot;
 
+    @Column(name = "consumo_tot_perdite")
+    private double consumoTotP;
+
+    @Column(name = "consumo_tot_reattivo")
+    private double consumoTotR;
+
+    @Column(name = "perditeF1")
+    private double perditeF1;
+
+    @Column(name = "perditeF2")
+    private double perditeF2;
+
+    @Column(name = "perditeF3")
+    private double perditeF3;
+
     @Column(name = "potenza_prelevata")
     private double potenzaPrelevata;
 
-    @Column(name = "imposte")
-    private double imposte;
+    @Column(name = "totale_imposte")
+    private double totaleImposte;
+
+    @Column(name = "totale_materia")
+    private double totaleMateria;
+
+    @Column(name = "totale_trasporto")
+    private double totaleTrasporto;
+
+    @Column(name = "totale_oneri")
+    private double totaleOneri;
+
+    @Column(name = "totale_imponibile")
+    private double totaleImponibile;
 
     @ManyToOne
     @JoinColumn(name = "dispacciamento_id", nullable = false)
