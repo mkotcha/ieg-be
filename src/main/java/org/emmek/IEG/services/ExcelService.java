@@ -6,6 +6,7 @@ import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.emmek.IEG.entities.Fattura;
 import org.emmek.IEG.entities.FatturaSingola;
+import org.emmek.IEG.entities.Pun;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,9 @@ public class ExcelService {
 
     @Autowired
     LetturaService letturaService;
+
+    @Autowired
+    PunService punService;
 
     public Workbook createExcelFile() {
         Workbook workbook = new XSSFWorkbook();
@@ -201,7 +205,26 @@ public class ExcelService {
     private void writePagina3(String fileName, FatturaSingola fatturaSingola) {
         String sheetName = fatturaSingola.getFornitura().getId() + " consumi";
         Locale it = new Locale("it", "IT");
-        
+        try (Workbook workbook = WorkbookFactory.create(new FileInputStream(fileName))) {
+            writeCell(workbook, sheetName, "codice_cliente", "2050" + String.format("%03d", fatturaSingola.getFornitura().getCliente().getId()));
+            writeCell(workbook, sheetName, "tipo_misuratore", fatturaSingola.getFornitura().getTipoContatore().toString());
+            writeCell(workbook, sheetName, "pod", fatturaSingola.getFornitura().getId());
+            writeCell(workbook, sheetName, "potenza_disponibile", String.format(it, "%.2f", fatturaSingola.getFornitura().getPotenzaDisponibile()));
+            writeCell(workbook, sheetName, "potenza_impegnata", String.format(it, "%.2f", fatturaSingola.getFornitura().getPotenzaImpegnata()));
+            writeCell(workbook, sheetName, "data_lettura_prec", fatturaSingola.getLetture().get(1).getDataLettura().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            writeCell(workbook, sheetName, "data_lettura", fatturaSingola.getLetture().get(0).getDataLettura().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            Pun pun = punService.getByMeseAndAnno(fatturaSingola.getFattura().getMese(), fatturaSingola.getFattura().getAnno());
+            writeCell(workbook, sheetName, "prezzo_F1", pun.getF1());
+            writeCell(workbook, sheetName, "prezzo_F2", pun.getF2());
+            writeCell(workbook, sheetName, "prezzo_F3", pun.getF3());
+            writeCell(workbook, sheetName, "consumo_F1", fatturaSingola.getConsumoF1());
+            writeCell(workbook, sheetName, "consumo_F2", fatturaSingola.getConsumoF2());
+            writeCell(workbook, sheetName, "consumo_F3", fatturaSingola.getConsumoF3());
+
+
+        } catch (IOException e) {
+            log.error("Error during workbook creation: " + e.getMessage());
+        }
     }
 
     public void createFattura(Fattura fattura) throws IOException {
@@ -217,7 +240,7 @@ public class ExcelService {
             addPagina("template/pagina_2.xlsx", fatturaFileName, fatturaSingola.getFornitura().getId() + " letture");
             writePagina2(fatturaFileName, fatturaSingola);
             addPagina("template/pagina_3.xlsx", fatturaFileName, fatturaSingola.getFornitura().getId() + " consumi");
-            writePagina3("template/pagina_3.xlsx", fatturaSingola);
+            writePagina3(fatturaFileName, fatturaSingola);
         }
         addPagina("template/pagina_1.xlsx", fatturaFileName, "");
 
