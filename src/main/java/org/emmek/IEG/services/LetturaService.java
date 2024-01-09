@@ -316,14 +316,19 @@ public class LetturaService {
         consumi.put("ErF1", letturaLast.getErF1() - letturaOld.getErF1());
         consumi.put("ErF2", letturaLast.getErF2() - letturaOld.getErF2());
         consumi.put("ErF3", letturaLast.getErF3() - letturaOld.getErF3());
-        double consumoTot = consumi.get("ErF1") + consumi.get("ErF2") + consumi.get("ErF3");
-        double consumoTotr = consumi.get("ErF1") + consumi.get("ErF2") + consumi.get("ErF3");
+        consumi.put("perditeF1", consumi.get("EaF1") / 100 * 10.4);
+        consumi.put("perditeF2", consumi.get("EaF2") / 100 * 10.4);
+        consumi.put("perditeF3", consumi.get("EaF3") / 100 * 10.4);
+        double consumoTot = consumi.get("EaF1") + consumi.get("EaF2") + consumi.get("EaF3");
+        double consumoTotP = consumoTot + consumi.get("perditeF1") + consumi.get("perditeF2") + consumi.get("perditeF3");
+        double consumoTotR = consumi.get("ErF1") + consumi.get("ErF2") + consumi.get("ErF3");
         double potMax = Math.max(letturaLast.getPotF1(), Math.max(letturaLast.getPotF2(), letturaLast.getPotF3()));
         consumi.put("consumoTot", consumoTot);
-        consumi.put("consumoTotr", consumoTotr);
+        consumi.put("consumoTotP", consumoTotP);
+        consumi.put("consumoTotR", consumoTotR);
         consumi.put("potMax", potMax);
-        if (consumoTotr > 0) {
-            double percentualeReattiva = (consumi.get("consumoTotr") / consumi.get("consumoTot")) * 100;
+        if (consumoTotR > 0) {
+            double percentualeReattiva = (consumi.get("consumoTotR") / consumi.get("consumoTot")) * 100;
             consumi.put("percentualeReattiva", percentualeReattiva);
         }
         return consumi;
