@@ -57,6 +57,9 @@ public class Fattura {
     @Column(name = "totale_oneri")
     private double totaleOneri;
 
+    @Column(name = "totale_iva")
+    private double totaleIva;
+
     @Column(name = "totale_imponibile")
     private double totaleImponibile;
 

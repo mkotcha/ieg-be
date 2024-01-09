@@ -45,7 +45,7 @@ public class FatturaService {
     public Fattura newfattura(Cliente cliente, Integer mese, Integer anno) throws IOException {
         String numeroFattura = "AUEE" + anno +
                 String.format("%02d", mese) +
-                String.format("%03d", cliente.getId()) + "000";
+                String.format("%03d", cliente.getId()) + "00";
         Fattura fattura;
         if (fatturaRepository.existsByNumeroFattura(numeroFattura)) {
             log.debug("Fattura " + numeroFattura + " già presente... Sovrascrivo");
@@ -128,14 +128,17 @@ public class FatturaService {
                     oneri.getQeArim() * fatturaSingola.getConsumoTot();
             fatturaSingola.setTotaleOneri(totaleOneri);
             fatturaSingola.setTotaleImponibile(totaleMateria + totaleTrasporto + totaleOneri + fatturaSingola.getTotaleImposte());
+            fatturaSingola.setTotaleIva(fatturaSingola.getTotaleImponibile() * fatturaSingola.getFornitura().getIva() / 100);
             fattura.addFatturaSingola(fatturaSingola);
         });
+        fattura.setConsumoTot(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getConsumoTot).sum());
+        fattura.setConsumoTotP(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getConsumoTotP).sum());
         fattura.setTotaleMateria(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleMateria).sum());
         fattura.setTotaleTrasporto(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleTrasporto).sum());
         fattura.setTotaleOneri(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleOneri).sum());
         fattura.setTotaleImposte(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleImposte).sum());
         fattura.setTotaleImponibile(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleImponibile).sum());
-
+        fattura.setTotaleIva(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleIva).sum());
         excelService.createFattura(fattura);
         return fattura;
     }

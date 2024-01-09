@@ -36,3 +36,4 @@ env.properties
 /data/**
 *.xlsx
 *.xlsb
+/fatture/**

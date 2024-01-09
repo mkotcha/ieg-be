@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -39,6 +40,16 @@ public class ExcelService {
 
     public void saveWorkbookToFile(Workbook workbook, String filePath) throws IOException {
         try (FileOutputStream fileOut = new FileOutputStream(filePath)) {
+            FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
+            for (Sheet sheet : workbook) {
+                for (Row row : sheet) {
+                    for (Cell cell : row) {
+                        if (cell.getCellType() == CellType.FORMULA) {
+                            evaluator.evaluateFormulaCell(cell);
+                        }
+                    }
+                }
+            }
             workbook.write(fileOut);
         }
     }
@@ -98,6 +109,9 @@ public class ExcelService {
         }
         CellReference cellReference = new CellReference(namedCell.getRefersToFormula());
         Row row = sheet.getRow(cellReference.getRow());
+        if (row == null) {
+            row = sheet.createRow(cellReference.getRow());
+        }
         Cell cell = row.getCell(cellReference.getCol());
         if (cell == null) {
             cell = row.createCell(cellReference.getCol());
@@ -118,15 +132,13 @@ public class ExcelService {
         }
         CellReference cellReference = new CellReference(namedCell.getRefersToFormula());
         Row row = sheet.getRow(cellReference.getRow());
+        if (row == null) {
+            row = sheet.createRow(cellReference.getRow());
+        }
         Cell cell = row.getCell(cellReference.getCol());
         if (cell == null) {
             cell = row.createCell(cellReference.getCol());
         }
-//        try {
-//            cell.setCellValue(Double.toString(value).replace(",", "."));
-//        } catch (NumberFormatException ignored) {
-//            cell.setCellValue(value);
-//        }
         cell.setCellValue(value);
     }
 
@@ -262,18 +274,36 @@ public class ExcelService {
             writeCell(workbook, sheetName, "qe_arim", oneri.getQeArim());
             writeCell(workbook, sheetName, "totale_oneri", fatturaSingola.getTotaleOneri());
             writeCell(workbook, sheetName, "totale_imposte", fatturaSingola.getTotaleImposte());
+            writeCell(workbook, sheetName, "imponibile", fatturaSingola.getTotaleImponibile());
+            writeCell(workbook, sheetName, "iva", fatturaSingola.getFornitura().getIva() / 100);
+            writeCell(workbook, sheetName, "totale_iva", fatturaSingola.getTotaleIva());
             saveWorkbookToFile(workbook, fileName);
         } catch (IOException e) {
             log.error("Error during workbook creation: " + e.getMessage());
         }
     }
 
-    public void writePagina1(String fileName, FatturaSingola fatturaSingola) {
+    public void writePagina1(String fileName, Fattura fattura) {
         String sheetName = "riepilogo";
-        Locale it = new Locale("it", "IT");
         try (Workbook workbook = WorkbookFactory.create(new FileInputStream(fileName))) {
-
-
+            writeCell(workbook, sheetName, "numero_fattura", fattura.getNumeroFattura());
+            writeCell(workbook, sheetName, "data_fattura", fattura.getDataFattura().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+            writeCell(workbook, sheetName, "periodo_fatturazione", "Fattura di " + LocalDate.of(fattura.getAnno(), fattura.getMese(), 15).format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ITALIAN)));
+            writeCell(workbook, sheetName, "scadenza", "Scadenza " + YearMonth.of(LocalDate.now().getYear(), LocalDate.now().getMonth()).atEndOfMonth().format(DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.ITALIAN)));
+            writeCell(workbook, sheetName, "ragione_sociale", fattura.getCliente().getRagioneSociale());
+            writeCell(workbook, sheetName, "indirizzo_1", fattura.getCliente().getIndirizzo());
+            writeCell(workbook, sheetName, "indirizzo_2", fattura.getCliente().getCap() + " " + fattura.getCliente().getComune() + " (" + fattura.getCliente().getProvincia() + ")");
+            writeCell(workbook, sheetName, "totale_materia", fattura.getTotaleMateria());
+            writeCell(workbook, sheetName, "totale_oneri", fattura.getTotaleOneri());
+            writeCell(workbook, sheetName, "totale_imposte", fattura.getTotaleImposte());
+            writeCell(workbook, sheetName, "totale_trasporto", fattura.getTotaleTrasporto());
+            writeCell(workbook, sheetName, "totale_iva", fattura.getTotaleIva());
+            writeCell(workbook, sheetName, "totale_fattura", fattura.getTotaleImponibile() + fattura.getTotaleIva());
+            writeCell(workbook, sheetName, "consumo_tott", fattura.getConsumoTot());
+            writeCell(workbook, sheetName, "partita_iva", fattura.getCliente().getPIva());
+            writeCell(workbook, sheetName, "codice_clientee", "2050" + String.format("%03d", fattura.getCliente().getId()));
+            writeCell(workbook, sheetName, "iva", fattura.getFattureSingole().get(0).getFornitura().getIva() / 100);
+            saveWorkbookToFile(workbook, fileName);
         } catch (IOException e) {
             log.error("Error during workbook creation: " + e.getMessage());
         }
@@ -296,7 +326,7 @@ public class ExcelService {
             addPagina("template/pagina_3.xlsx", fatturaFileName, fatturaSingola.getFornitura().getId() + " consumi");
             writePagina3(fatturaFileName, fatturaSingola);
         }
-        addPagina("template/pagina_1.xlsx", fatturaFileName, "");
+        addPagina("template/pagina_1.xlsx", fatturaFileName, "riepilogo");
         writePagina1(fatturaFileName, fattura);
 
         save2Pdf(fatturaFileName);
