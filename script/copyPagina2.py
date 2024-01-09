@@ -5,6 +5,7 @@ import xlwings as xw
 def copy_sheet_to_end_of_workbook(source_file, target_file, sheet_name):
     # Open both workbooks
     with xw.App(visible=False) as app:
+        app.api.DisplayAlerts = False
         source_wb = xw.Book(source_file)
         target_wb = xw.Book(target_file)
 
