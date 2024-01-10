@@ -63,6 +63,12 @@ public class Fattura {
     @Column(name = "totale_imponibile")
     private double totaleImponibile;
 
+    @Column(name = "xlsx")
+    private String xlsx;
+
+    @Column(name = "pdf")
+    private String pdf;
+
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;

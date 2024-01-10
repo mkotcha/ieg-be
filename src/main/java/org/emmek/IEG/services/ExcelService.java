@@ -5,6 +5,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.emmek.IEG.entities.*;
+import org.emmek.IEG.repositories.FatturaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,9 @@ public class ExcelService {
 
     @Autowired
     PunService punService;
+
+    @Autowired
+    FatturaRepository fatturaRepository;
 
 
     public Workbook createExcelFile() {
@@ -331,9 +335,9 @@ public class ExcelService {
 
         save2Pdf(fatturaFileName);
 
-        // close file
-
+        String pdf = fatturaFileName.substring(0, fatturaFileName.lastIndexOf(".")) + ".pdf";
+        fattura.setPdf(pdf);
+        fattura.setXlsx(fatturaFileName);
+        fatturaRepository.save(fattura);
     }
-
-
 }

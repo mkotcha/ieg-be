@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.emmek.IEG.enums.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -99,6 +101,7 @@ public class Fornitura {
     private List<Fattura> fatture;
 
     @OneToMany(mappedBy = "fornitura")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JsonIgnore
     private List<Lettura> letture;
 }

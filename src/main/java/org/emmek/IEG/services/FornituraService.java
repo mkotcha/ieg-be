@@ -42,4 +42,9 @@ public class FornituraService {
     public List<Fornitura> findByCliente(Cliente cliente) {
         return fornituraRepository.findByCliente(cliente);
     }
+
+    public void delete(String id) {
+        Fornitura fornitura = fornituraRepository.findById(id).orElseThrow(() -> new RuntimeException("Fornitura con id: " + id + " non trovata"));
+        fornituraRepository.delete(fornitura);
+    }
 }

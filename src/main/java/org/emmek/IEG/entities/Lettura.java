@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.emmek.IEG.enums.TipoContatore;
 import org.emmek.IEG.enums.TipoLettura;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -63,6 +65,7 @@ public class Lettura {
     @ManyToOne
     @JoinColumn(name = "fornitura_pod", nullable = false)
 //    @JsonIgnore
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Fornitura fornitura;
 
     @ManyToMany()

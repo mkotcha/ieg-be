@@ -4,6 +4,7 @@ import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.services.FornituraService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,5 +30,11 @@ public class FornitureController {
     @GetMapping("{id}")
     public Fornitura getFornitura(@PathVariable String id) {
         return fornituraService.findById(id);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public void delete(@PathVariable String id) {
+        fornituraService.delete(id);
     }
 }
