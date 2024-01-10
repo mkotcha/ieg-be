@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "clienti")
@@ -47,5 +49,6 @@ public class Cliente {
 
     @JsonIgnore
     @OneToMany(mappedBy = "cliente")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private java.util.List<Fornitura> forniture;
 }

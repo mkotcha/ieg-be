@@ -42,4 +42,9 @@ public class ClienteService {
         Cliente cliente = clienteRepository.findById(id).orElseThrow(() -> new RuntimeException("Cliente con id: " + id + " non trovato"));
         return fatturaService.newfattura(cliente, mese, anno);
     }
+
+    public void delete(String id) {
+        Cliente cliente = clienteRepository.findById(Long.parseLong(id)).orElseThrow(() -> new RuntimeException("Cliente con id: " + id + " non trovato"));
+        clienteRepository.delete(cliente);
+    }
 }

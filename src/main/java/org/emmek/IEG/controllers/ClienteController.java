@@ -8,6 +8,7 @@ import org.emmek.IEG.services.FatturaService;
 import org.emmek.IEG.services.FornituraService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -63,6 +64,12 @@ public class ClienteController {
     @GetMapping("/{id}/fatture")
     public List<Fattura> getFatture(@PathVariable String id) {
         return fatturaService.findByCliente(clienteService.findById(id));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public void delete(@PathVariable String id) {
+        clienteService.delete(id);
     }
 
 }

@@ -49,7 +49,7 @@ public class FatturaService {
         Fattura fattura;
         if (fatturaRepository.existsByNumeroFattura(numeroFattura)) {
             log.debug("Fattura " + numeroFattura + " già presente... Sovrascrivo");
-            fattura = fatturaRepository.findByNumeroFattura(numeroFattura);
+            fattura = fatturaRepository.findByNumeroFattura(numeroFattura).orElseThrow(() -> new RuntimeException("Fattura " + numeroFattura + " non trovata"));
             List<FatturaSingola> fatturaSingole = fattura.getFattureSingole();
             fatturaSingole.forEach(fatturaSingola -> {
                 fatturaSingolaRepository.delete(fatturaSingola);
@@ -150,5 +150,9 @@ public class FatturaService {
 
     public List<Fattura> findByCliente(Cliente cliente) {
         return fatturaRepository.findByCliente(cliente);
+    }
+
+    public Fattura findByNumeroFattura(String numeroFattura) {
+        return fatturaRepository.findByNumeroFattura(numeroFattura).orElseThrow(() -> new RuntimeException("Fattura " + numeroFattura + " non trovata"));
     }
 }
