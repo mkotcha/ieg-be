@@ -25,6 +25,11 @@ public class FatturaController {
     private FatturaService fatturaService;
 
 
+    @GetMapping("")
+    public Iterable<Fattura> getFatture() {
+        return fatturaService.findAll();
+    }
+
     @GetMapping(value = "/{numeroFattura}/pdf")
     public ResponseEntity<InputStreamResource> getFatturaPdf(@PathVariable String numeroFattura) throws IOException {
         Fattura fattura = fatturaService.findByNumeroFattura(numeroFattura);

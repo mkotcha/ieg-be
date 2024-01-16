@@ -155,4 +155,8 @@ public class FatturaService {
     public Fattura findByNumeroFattura(String numeroFattura) {
         return fatturaRepository.findByNumeroFattura(numeroFattura).orElseThrow(() -> new RuntimeException("Fattura " + numeroFattura + " non trovata"));
     }
+
+    public List<Fattura> findAll() {
+        return fatturaRepository.findAll();
+    }
 }
