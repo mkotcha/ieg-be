@@ -35,3 +35,8 @@ env.properties
 **/*.log*
 /data/**
 *.xlsx
+<<<<<<< HEAD
+=======
+*.xlsb
+/fatture/**
+>>>>>>> release/1.0.0
