@@ -18,4 +18,9 @@ public class PrezzoService {
     public Prezzo save(Prezzo prezzo) {
         return prezzoRepository.save(prezzo);
     }
+
+    public Prezzo findById(Long id) {
+        return prezzoRepository.findById(id).orElseThrow(() -> new RuntimeException("Prezzo con id: " + id + " non trovato"));
+
+    }
 }

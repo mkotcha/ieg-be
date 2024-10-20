@@ -15,6 +15,10 @@ public class ProgrammazioneService {
         return programmazioneRepository.findByNome(maggiorato).orElseThrow(() -> new RuntimeException("Programmazione con nome: " + maggiorato + " non trovata"));
     }
 
+    public Programmazione findById(Long id) {
+        return programmazioneRepository.findById(id).orElseThrow(() -> new RuntimeException("Programmazione con id: " + id + " non trovata"));
+    }
+
     public Programmazione save(Programmazione programmazione) {
         return programmazioneRepository.save(programmazione);
     }
