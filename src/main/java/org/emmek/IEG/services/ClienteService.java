@@ -2,6 +2,7 @@ package org.emmek.IEG.services;
 
 import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fattura;
+import org.emmek.IEG.payloads.ClienteDTO;
 import org.emmek.IEG.repositories.ClienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -46,5 +47,33 @@ public class ClienteService {
     public void delete(String id) {
         Cliente cliente = clienteRepository.findById(Long.parseLong(id)).orElseThrow(() -> new RuntimeException("Cliente con id: " + id + " non trovato"));
         clienteRepository.delete(cliente);
+    }
+
+    public Cliente setCliente(ClienteDTO payload) {
+        Cliente cliente = new Cliente();
+        cliente.setCap(Integer.parseInt(payload.cap()));
+        cliente.setCf(payload.cf());
+        cliente.setComune(payload.comune());
+        cliente.setEmail(payload.email());
+        cliente.setIndirizzo(payload.indirizzo());
+        cliente.setPIva(payload.pIva());
+        cliente.setProvincia(payload.provincia());
+        cliente.setRagioneSociale(payload.ragioneSociale());
+        cliente.setTelefono(payload.telefono());
+        return clienteRepository.save(cliente);
+    }
+
+    public Cliente updateCliente(String id, ClienteDTO payload) {
+        Cliente cliente = clienteRepository.findById(Long.parseLong(id)).orElseThrow(() -> new RuntimeException("Cliente con id: " + id + " non trovato"));
+        cliente.setCap(Integer.parseInt(payload.cap()));
+        cliente.setCf(payload.cf());
+        cliente.setComune(payload.comune());
+        cliente.setEmail(payload.email());
+        cliente.setIndirizzo(payload.indirizzo());
+        cliente.setPIva(payload.pIva());
+        cliente.setProvincia(payload.provincia());
+        cliente.setRagioneSociale(payload.ragioneSociale());
+        cliente.setTelefono(payload.telefono());
+        return clienteRepository.save(cliente);
     }
 }

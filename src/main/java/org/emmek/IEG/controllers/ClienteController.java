@@ -3,6 +3,7 @@ package org.emmek.IEG.controllers;
 import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fattura;
 import org.emmek.IEG.entities.Fornitura;
+import org.emmek.IEG.payloads.ClienteDTO;
 import org.emmek.IEG.services.ClienteService;
 import org.emmek.IEG.services.FatturaService;
 import org.emmek.IEG.services.FornituraService;
@@ -34,6 +35,7 @@ public class ClienteController {
         return clienteService.findAll(page, size, sort);
     }
 
+
     @GetMapping("/{id}/fattura")
     public Fattura setFattura(@PathVariable long id,
                               @RequestParam(required = false) Integer mese,
@@ -64,6 +66,18 @@ public class ClienteController {
     @GetMapping("/{id}/fatture")
     public List<Fattura> getFatture(@PathVariable String id) {
         return fatturaService.findByCliente(clienteService.findById(id));
+    }
+
+    @PostMapping("")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Cliente setCliente(@RequestBody ClienteDTO cliente) {
+        return clienteService.setCliente(cliente);
+    }
+
+    @PutMapping("{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Cliente updateCliente(@PathVariable String id, @RequestBody ClienteDTO cliente) {
+        return clienteService.updateCliente(id, cliente);
     }
 
     @DeleteMapping("/{id}")

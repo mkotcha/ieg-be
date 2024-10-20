@@ -119,7 +119,7 @@ public class LetturaService {
         }
         if (fornitura != null
                 && datiPod.misura.validato.equals("S")
-                && giorno == 30) {
+                && (giorno == 30 || giorno == 31)) {
             try {
                 log.debug("parsing...");
                 lettura.setId(getNextId());
@@ -150,7 +150,9 @@ public class LetturaService {
                 lettura.setTipoDato(datiPod.misura.tipoDato);
                 lettura.setCausaOstativa(datiPod.misura.causaOstativa);
                 lettura.setValidato(datiPod.misura.validato);
-                lettura.setPotMax(datiPod.misura.potMax.replaceAll(",", "."));
+                if (datiPod.misura.potMax != null) {
+                    lettura.setPotMax(datiPod.misura.potMax.replaceAll(",", "."));
+                }
                 lettura.setEaF1(Double.parseDouble(datiPod.misura.eaF1.replaceAll(",", ".")));
                 lettura.setEaF2(Double.parseDouble(datiPod.misura.eaF2.replaceAll(",", ".")));
                 lettura.setEaF3(Double.parseDouble(datiPod.misura.eaF3.replaceAll(",", ".")));

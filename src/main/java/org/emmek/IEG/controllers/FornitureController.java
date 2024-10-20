@@ -1,6 +1,7 @@
 package org.emmek.IEG.controllers;
 
 import org.emmek.IEG.entities.Fornitura;
+import org.emmek.IEG.payloads.FornituraDTO;
 import org.emmek.IEG.services.FornituraService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,19 @@ public class FornitureController {
     @GetMapping("{id}")
     public Fornitura getFornitura(@PathVariable String id) {
         return fornituraService.findById(id);
+    }
+
+    //post to add a fornitura
+    @PostMapping("")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Fornitura setFornitura(@RequestBody FornituraDTO fornitura) {
+        return fornituraService.setFornitura(fornitura);
+    }
+
+    @PutMapping("{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Fornitura updateFornitura(@PathVariable String id, @RequestBody FornituraDTO fornitura) {
+        return fornituraService.updateFornitura(id, fornitura);
     }
 
     @DeleteMapping("/{id}")
