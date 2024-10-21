@@ -1,6 +1,7 @@
 package org.emmek.IEG.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,6 +25,7 @@ public class Cliente {
     private String ragioneSociale;
 
     @Column(name = "piva", nullable = false)
+    @JsonProperty("pIva")
     private String pIva;
 
     @Column(name = "CF", nullable = false)

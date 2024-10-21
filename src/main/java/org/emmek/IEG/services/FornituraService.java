@@ -21,8 +21,8 @@ public class FornituraService {
     @Autowired
     private FornituraRepository fornituraRepository;
 
-    @Autowired
-    private ClienteService clienteService;
+//    @Autowired
+//    private ClienteService clienteService;
 
     @Autowired
     private PrezzoService prezzoService;
@@ -60,9 +60,9 @@ public class FornituraService {
         fornituraRepository.delete(fornitura);
     }
 
-    public Fornitura setFornitura(FornituraDTO payload) {
+    public Fornitura setFornitura(FornituraDTO payload, Cliente cliente) {
         Fornitura fornitura = new Fornitura();
-        fornitura.setCliente(clienteService.findById(payload.idCliente()));
+        fornitura.setCliente(cliente);
         fornitura.setPrezzo(prezzoService.findById(Long.valueOf(payload.idPrezzo())));
         fornitura.setProgrammazione(programmazioneService.findById(Long.valueOf(payload.idProgrammazione())));
         fornitura.setBta(BTA.valueOf(payload.bta()));
@@ -83,9 +83,9 @@ public class FornituraService {
         return fornituraRepository.save(fornitura);
     }
 
-    public Fornitura updateFornitura(String id, FornituraDTO payload) {
+    public Fornitura updateFornitura(String id, FornituraDTO payload, Cliente cliente) {
         Fornitura fornitura = findById(id);
-        fornitura.setCliente(clienteService.findById(payload.idCliente()));
+        fornitura.setCliente(cliente);
         fornitura.setPrezzo(prezzoService.findById(Long.valueOf(payload.idPrezzo())));
         fornitura.setProgrammazione(programmazioneService.findById(Long.valueOf(payload.idProgrammazione())));
         fornitura.setBta(BTA.valueOf(payload.bta()));
