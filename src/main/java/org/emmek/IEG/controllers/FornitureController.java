@@ -1,7 +1,9 @@
 package org.emmek.IEG.controllers;
 
+import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fornitura;
 import org.emmek.IEG.payloads.FornituraDTO;
+import org.emmek.IEG.services.ClienteService;
 import org.emmek.IEG.services.FornituraService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,9 @@ import java.util.List;
 public class FornitureController {
     @Autowired
     private FornituraService fornituraService;
+
+    @Autowired
+    private ClienteService clienteService;
 
     @GetMapping("")
     public Page<Fornitura> getClienti(@RequestParam(defaultValue = "0") int page,
@@ -37,13 +42,15 @@ public class FornitureController {
     @PostMapping("")
     @PreAuthorize("hasAuthority('ADMIN')")
     public Fornitura setFornitura(@RequestBody FornituraDTO fornitura) {
-        return fornituraService.setFornitura(fornitura);
+        Cliente cliente = clienteService.findById(fornitura.idCliente());
+        return fornituraService.setFornitura(fornitura, cliente);
     }
 
     @PutMapping("{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
     public Fornitura updateFornitura(@PathVariable String id, @RequestBody FornituraDTO fornitura) {
-        return fornituraService.updateFornitura(id, fornitura);
+        Cliente cliente = clienteService.findById(fornitura.idCliente());
+        return fornituraService.updateFornitura(id, fornitura, cliente);
     }
 
     @DeleteMapping("/{id}")
