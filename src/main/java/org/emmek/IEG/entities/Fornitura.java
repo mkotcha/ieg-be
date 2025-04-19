@@ -40,7 +40,7 @@ public class Fornitura {
     @Column(name = "cap", nullable = false)
     private int cap;
 
-    @Column(name = "comune", nullable = false)
+    @Column(name = "comune", nullable = true)
     private String comune;
 
     @Column(name = "provincia", nullable = false)
@@ -84,11 +84,11 @@ public class Fornitura {
     private LocalDate dataSwitchOut;
 
     @ManyToOne
-    @JoinColumn(name = "prezzo_id", nullable = false)
+    @JoinColumn(name = "prezzo_id", nullable = true)
     private Prezzo prezzo;
 
     @ManyToOne
-    @JoinColumn(name = "programmazione_id", nullable = false)
+    @JoinColumn(name = "programmazione_id", nullable = true)
     private Programmazione programmazione;
 
     @ManyToMany
