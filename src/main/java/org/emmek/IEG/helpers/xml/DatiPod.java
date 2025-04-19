@@ -20,6 +20,9 @@ public class DatiPod {
     @XmlElement(name = "DataMisura")
     public String dataMisura;
 
+    @XmlElement(name = "DataPrest")
+    public String dataPrest;
+
     @XmlElement(name = "DatiPdp")
     public DatiPdp datiPdp;
 

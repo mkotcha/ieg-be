@@ -24,11 +24,11 @@ public class Cliente {
     @Column(name = "ragione_sociale", nullable = false)
     private String ragioneSociale;
 
-    @Column(name = "piva", nullable = false)
+    @Column(name = "piva", nullable = true)
     @JsonProperty("pIva")
     private String pIva;
 
-    @Column(name = "CF", nullable = false)
+    @Column(name = "CF", nullable = true)
     private String cf;
 
     @Column(name = "indirizzo", nullable = false)
@@ -37,7 +37,7 @@ public class Cliente {
     @Column(name = "cap", nullable = false)
     private int cap;
 
-    @Column(name = "comune", nullable = false)
+    @Column(name = "comune", nullable = true)
     private String comune;
 
     @Column(name = "provincia", nullable = false)

@@ -199,15 +199,15 @@ public class Runner implements CommandLineRunner {
             fornitura.setFatturazione(Fatturazione.MENSILE);
             Prezzo prezzo;
             Programmazione programmazione;
-            if (fornituraModel.getDispacciamento().equals("10 ott")) {
-                prezzo = createPrezzoIfNotExist("BASE " + fornituraModel.getSpread(), fornituraModel.getMaggiorazione(), fornituraModel.getSpread());
-                programmazione = createProgrammazioneIfNotExist("BASE");
-            } else {
-                prezzo = createPrezzoIfNotExist("MAGGIORATO " + fornituraModel.getMaggiorazione(), fornituraModel.getMaggiorazione(), fornituraModel.getSpread());
-                programmazione = createProgrammazioneIfNotExist("MAGGIORATO");
-            }
-            fornitura.setProgrammazione(programmazione);
-            fornitura.setPrezzo(prezzo);
+//            if (fornituraModel.getDispacciamento().equals("10 ott")) {
+//                prezzo = createPrezzoIfNotExist("BASE " + fornituraModel.getSpread(), fornituraModel.getMaggiorazione(), fornituraModel.getSpread());
+//                programmazione = createProgrammazioneIfNotExist("BASE");
+//            } else {
+//                prezzo = createPrezzoIfNotExist("MAGGIORATO " + fornituraModel.getMaggiorazione(), fornituraModel.getMaggiorazione(), fornituraModel.getSpread());
+//                programmazione = createProgrammazioneIfNotExist("MAGGIORATO");
+//            }
+//            fornitura.setProgrammazione(programmazione);
+//            fornitura.setPrezzo(prezzo);
             fornitura.setBta(BTA.valueOf(fornituraModel.getBta()));
             fornitura.setIva(Double.parseDouble(fornituraModel.getIva()));
             fornitura.setDataSwitch(LocalDate.parse(fornituraModel.getDataSwitch()));
