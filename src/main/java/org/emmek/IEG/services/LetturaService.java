@@ -123,8 +123,8 @@ public class LetturaService {
         }
         if (fornitura != null
 //                && datiPod.misura.validato.equals("S")
-                && (giorno == 1)) {
-//        ) {
+                && (giorno == 31)) {
+            //       ) {
             try {
                 log.debug("parsing...");
                 lettura.setId(getNextId());
