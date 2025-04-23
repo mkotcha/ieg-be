@@ -34,7 +34,7 @@ public class Fornitura {
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
 
-    @Column(name = "indirizzo", nullable = false)
+    @Column(name = "indirizzo", nullable = true)
     private String indirizzo;
 
     @Column(name = "cap", nullable = false)

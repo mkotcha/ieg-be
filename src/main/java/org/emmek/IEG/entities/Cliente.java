@@ -31,16 +31,16 @@ public class Cliente {
     @Column(name = "CF", nullable = true)
     private String cf;
 
-    @Column(name = "indirizzo", nullable = false)
+    @Column(name = "indirizzo", nullable = true)
     private String indirizzo;
 
-    @Column(name = "cap", nullable = false)
+    @Column(name = "cap", nullable = true)
     private int cap;
 
     @Column(name = "comune", nullable = true)
     private String comune;
 
-    @Column(name = "provincia", nullable = false)
+    @Column(name = "provincia", nullable = true)
     private String provincia;
 
     @Column(name = "telefono", nullable = true)
