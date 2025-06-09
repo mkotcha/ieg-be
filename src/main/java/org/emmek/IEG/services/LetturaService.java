@@ -86,7 +86,7 @@ public class LetturaService {
 
         File[] listOfFiles = folder.listFiles();
 
-        File[] listOfXmlFiles = folder.listFiles((dir, name) -> name.contains("_PDO") || name.contains("_PNO"));
+        File[] listOfXmlFiles = folder.listFiles((dir, name) -> name.contains("_PDO") || name.contains("_PNO") || name.contains("_SNM2G"));
         if (listOfXmlFiles != null && listOfFiles != null) {
             log.debug("esamino " + listOfXmlFiles.length + " file XML su " + listOfFiles.length);
             for (File file : listOfXmlFiles) {
@@ -115,11 +115,16 @@ public class LetturaService {
         if (datiPod.misura.ea != null) {
             giorno = Integer.parseInt(datiPod.misura.ea.get(0).valore);
         } else {
-            giorno = Integer.parseInt(datiPod.dataMisura.substring(0, 2));
+            if (datiPod.dataMisura != null) {
+                giorno = Integer.parseInt(datiPod.dataMisura.substring(0, 2));
+            } else {
+                giorno = Integer.parseInt(datiPod.dataPrest.substring(0, 2));
+            }
         }
         if (fornitura != null
-                && datiPod.misura.validato.equals("S")
-                && giorno == 30) {
+//                && datiPod.misura.validato.equals("S")
+                && (giorno == 31)) {
+            //       ) {
             try {
                 log.debug("parsing...");
                 lettura.setId(getNextId());
@@ -131,9 +136,15 @@ public class LetturaService {
                     mese = Integer.parseInt(meseAnno.substring(0, 2));
                     anno = Integer.parseInt(meseAnno.substring(3, 7));
                 } else {
-                    String dataMisura = datiPod.dataMisura;
-                    mese = Integer.parseInt(dataMisura.substring(3, 5));
-                    anno = Integer.parseInt(dataMisura.substring(6, 10));
+                    if (datiPod.dataMisura != null) {
+                        String dataMisura = datiPod.dataMisura;
+                        mese = Integer.parseInt(dataMisura.substring(3, 5));
+                        anno = Integer.parseInt(dataMisura.substring(6, 10));
+                    } else {
+                        String dataMisura = datiPod.dataPrest;
+                        mese = Integer.parseInt(dataMisura.substring(3, 5));
+                        anno = Integer.parseInt(dataMisura.substring(6, 10));
+                    }
                 }
                 lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
                 switch (datiPod.datiPdp.trattamento) {
@@ -150,7 +161,9 @@ public class LetturaService {
                 lettura.setTipoDato(datiPod.misura.tipoDato);
                 lettura.setCausaOstativa(datiPod.misura.causaOstativa);
                 lettura.setValidato(datiPod.misura.validato);
-                lettura.setPotMax(datiPod.misura.potMax.replaceAll(",", "."));
+                if (datiPod.misura.potMax != null) {
+                    lettura.setPotMax(datiPod.misura.potMax.replaceAll(",", "."));
+                }
                 lettura.setEaF1(Double.parseDouble(datiPod.misura.eaF1.replaceAll(",", ".")));
                 lettura.setEaF2(Double.parseDouble(datiPod.misura.eaF2.replaceAll(",", ".")));
                 lettura.setEaF3(Double.parseDouble(datiPod.misura.eaF3.replaceAll(",", ".")));
