@@ -45,4 +45,5 @@ public class Misura {
     public String potF2;
     @XmlElement(name = "PotF3")
     public String potF3;
+
 }

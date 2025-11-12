@@ -19,4 +19,6 @@ public interface LetturaRepository extends JpaRepository<Lettura, Long> {
     List<Lettura> findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(Fornitura fornitura, LocalDate from, LocalDate to);
 
     int countByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(Fornitura fornitura, LocalDate from, LocalDate to);
+
+    Lettura getLetturaByFornituraAndDataLettura(Fornitura fornitura, LocalDate dataLettura);
 }

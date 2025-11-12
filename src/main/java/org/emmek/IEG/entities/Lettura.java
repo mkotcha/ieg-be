@@ -61,6 +61,12 @@ public class Lettura {
     private double potF2;
     @Column(name = "pot_f3", nullable = true)
     private double potF3;
+    @Column(name = "ka", nullable = true)
+    private double ka;
+    @Column(name = "kr", nullable = true)
+    private double kr;
+    @Column(name = "kp", nullable = true)
+    private double kp;
     private String note;
     @ManyToOne
     @JoinColumn(name = "fornitura_pod", nullable = false)

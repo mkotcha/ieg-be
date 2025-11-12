@@ -64,7 +64,7 @@ public class Fornitura {
     @Enumerated(EnumType.STRING)
     private CodiceDistributore codiceDistributore;
 
-    @Column(name = "fornitore", nullable = false)
+    @Column(name = "fornitore", nullable = true)
     private String fornitore;
 
     @Column(name = "fatturazione", nullable = false)
