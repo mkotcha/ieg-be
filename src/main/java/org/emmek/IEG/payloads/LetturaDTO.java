@@ -18,8 +18,10 @@ public record LetturaDTO(
         String potF1,
         String potF2,
         String potF3,
+        String ka,
+        String kr,
+        String kp,
         String note
-
 
 ) {
 

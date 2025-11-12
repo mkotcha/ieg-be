@@ -35,7 +35,7 @@ public class FatturaController {
         Fattura fattura = fatturaService.findByNumeroFattura(numeroFattura);
 
         String src = fattura.getPdf();
-        log.debug("PDF to download: " + src);
+        log.debug("PDF to download: {}", src);
         InputStream in = new FileInputStream(src);
         InputStreamResource resource = new InputStreamResource(in);
 
@@ -58,7 +58,7 @@ public class FatturaController {
         Fattura fattura = fatturaService.findByNumeroFattura(numeroFattura);
 
         String src = fattura.getXlsx();
-        log.debug("XLSX to download: " + src);
+        log.debug("XLSX to download: {}", src);
         InputStream in = new FileInputStream(src);
         InputStreamResource resource = new InputStreamResource(in);
 

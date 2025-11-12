@@ -2,8 +2,14 @@ package org.emmek.IEG.helpers.xml;
 
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 @XmlRootElement(name = "DatiPdp")
+@NoArgsConstructor
+@Setter
+@ToString
 public class DatiPdp {
 
     @XmlElement(name = "Trattamento")
@@ -19,11 +25,11 @@ public class DatiPdp {
     public String gruppoMis;
 
     @XmlElement(name = "Ka")
-    double ka;
+    public String ka;
 
     @XmlElement(name = "Kr")
-    double kr;
+    public String kr;
 
     @XmlElement(name = "Kp")
-    double kp;
+    public String kp;
 }

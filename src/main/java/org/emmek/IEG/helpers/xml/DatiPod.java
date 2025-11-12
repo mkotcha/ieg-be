@@ -29,5 +29,4 @@ public class DatiPod {
     @XmlElement(name = "Misura")
     public Misura misura;
 
-
 }
