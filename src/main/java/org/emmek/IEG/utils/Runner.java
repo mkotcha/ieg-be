@@ -12,6 +12,7 @@ import org.emmek.IEG.helpers.excel.ClienteModel;
 import org.emmek.IEG.helpers.excel.FornituraModel;
 import org.emmek.IEG.helpers.excel.LetturaModel;
 import org.emmek.IEG.helpers.xml.FlussoMisure;
+import org.emmek.IEG.repositories.LetturaRepository;
 import org.emmek.IEG.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,9 @@ public class Runner implements CommandLineRunner {
     @Autowired
     ProgrammazioneService programmazioneService;
 
+    @Autowired
+    LetturaRepository letturaRepository;
+
     @Value("${admin.username}")
     private String username;
 
@@ -77,33 +81,40 @@ public class Runner implements CommandLineRunner {
         for (LetturaModel letturaModel : letture) {
             try {
                 Fornitura fornitura = fornituraService.finById(letturaModel.getPod());
-                Lettura lettura = new Lettura();
-                lettura.setFornitura(fornitura);
-                switch (letturaModel.getTipoLettura()) {
-                    case "Lettura stimata" -> lettura.setTipoLettura(TipoLettura.STIMA);
-                    case "Auto lettura" -> lettura.setTipoLettura(TipoLettura.AUTOLETTURA);
-                    case "Cambio contatore" -> lettura.setTipoLettura(TipoLettura.CAMBIO);
-                    default -> lettura.setTipoLettura(TipoLettura.REALE);
+                List<Lettura> lettureEsistenti = letturaRepository.findByFornituraAndDataLettura(fornitura, LocalDate.parse(letturaModel.getData()));
+                Lettura lettura = lettureEsistenti.isEmpty() ? null : lettureEsistenti.get(0);
+
+                if (lettura == null) {
+                    lettura = new Lettura();
+                    lettura.setFornitura(fornitura);
+                    switch (letturaModel.getTipoLettura()) {
+                        case "Lettura stimata" -> lettura.setTipoLettura(TipoLettura.STIMA);
+                        case "Auto lettura" -> lettura.setTipoLettura(TipoLettura.AUTOLETTURA);
+                        case "Cambio contatore" -> lettura.setTipoLettura(TipoLettura.CAMBIO);
+                        default -> lettura.setTipoLettura(TipoLettura.REALE);
+                    }
+                    if (letturaModel.getTipo().equals("NEW")) {
+                        lettura.setTipoLettura(TipoLettura.CAMBIO);
+                    }
+                    lettura.setId(letturaModel.getId());
+                    lettura.setDataLettura(LocalDate.parse(letturaModel.getData()));
+                    lettura.setTipoContatore(TipoContatore.FASCIA);
+                    lettura.setEaF1(Double.parseDouble(letturaModel.getF1()));
+                    lettura.setEaF2(Double.parseDouble(letturaModel.getF2()));
+                    lettura.setEaF3(Double.parseDouble(letturaModel.getF3()));
+                    lettura.setErF1(Double.parseDouble(letturaModel.getF1r()));
+                    lettura.setErF2(Double.parseDouble(letturaModel.getF2r()));
+                    lettura.setErF3(Double.parseDouble(letturaModel.getF3r()));
+                    lettura.setPotF1(Double.parseDouble(letturaModel.getPF1()));
+                    lettura.setPotF2(Double.parseDouble(letturaModel.getPF2()));
+                    lettura.setPotF3(Double.parseDouble(letturaModel.getPF3()));
+                    lettura.setUtile(true);
+                    letturaService.save(lettura);
+                } else {
+                    log.debug("lettura già presente nel db - per POD: {} e data: {}", letturaModel.getPod(), letturaModel.getData());
                 }
-                if (letturaModel.getTipo().equals("NEW")) {
-                    lettura.setTipoLettura(TipoLettura.CAMBIO);
-                }
-                lettura.setId(letturaModel.getId());
-                lettura.setDataLettura(LocalDate.parse(letturaModel.getData()));
-                lettura.setTipoContatore(TipoContatore.FASCIA);
-                lettura.setEaF1(Double.parseDouble(letturaModel.getF1()));
-                lettura.setEaF2(Double.parseDouble(letturaModel.getF2()));
-                lettura.setEaF3(Double.parseDouble(letturaModel.getF3()));
-                lettura.setErF1(Double.parseDouble(letturaModel.getF1r()));
-                lettura.setErF2(Double.parseDouble(letturaModel.getF2r()));
-                lettura.setErF3(Double.parseDouble(letturaModel.getF3r()));
-                lettura.setPotF1(Double.parseDouble(letturaModel.getPF1()));
-                lettura.setPotF2(Double.parseDouble(letturaModel.getPF2()));
-                lettura.setPotF3(Double.parseDouble(letturaModel.getPF3()));
-                lettura.setUtile(true);
-                letturaService.save(lettura);
             } catch (Exception e) {
-                log.debug("lettura non importata - " + e.getMessage());
+                log.debug("errore micidiale runner - per POD: {} - {}", letturaModel.getPod(), e.getMessage());
             }
 
         }

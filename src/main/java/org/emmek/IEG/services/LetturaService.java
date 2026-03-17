@@ -157,7 +157,8 @@ public class LetturaService {
                 try {
                     log.info("parsing... {} {}", datiPod.pod, fornitura.getCliente().getRagioneSociale());
                     LocalDate dataLettura = LocalDate.of(anno, mese, giorno);
-                    lettura = letturaRepository.getLetturaByFornituraAndDataLettura(fornitura, dataLettura);
+                    List<Lettura> lettureEsistenti = letturaRepository.findByFornituraAndDataLettura(fornitura, dataLettura);
+                    lettura = lettureEsistenti.isEmpty() ? null : lettureEsistenti.get(0);
                     if (lettura == null) {
                         lettura = new Lettura();
                         lettura.setId(getNextId());

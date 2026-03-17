@@ -37,13 +37,13 @@ public class Fornitura {
     @Column(name = "indirizzo", nullable = true)
     private String indirizzo;
 
-    @Column(name = "cap", nullable = false)
+    @Column(name = "cap", nullable = true)
     private int cap;
 
     @Column(name = "comune", nullable = true)
     private String comune;
 
-    @Column(name = "provincia", nullable = false)
+    @Column(name = "provincia", nullable = true)
     private String provincia;
 
     @Column(name = "potenza_disponibile", nullable = false)
