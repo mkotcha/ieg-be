@@ -155,7 +155,7 @@ public class LetturaService {
 //            if (giorno == 30 && mese == 9 && anno == 2025) {
             if (true) {
                 try {
-                    log.info("parsing... {} {}", datiPod.pod, fornitura.getCliente().getRagioneSociale());
+//                    log.info("parsing... {} {}", datiPod.pod, fornitura.getCliente().getRagioneSociale());
                     LocalDate dataLettura = LocalDate.of(anno, mese, giorno);
                     List<Lettura> lettureEsistenti = letturaRepository.findByFornituraAndDataLettura(fornitura, dataLettura);
                     lettura = lettureEsistenti.isEmpty() ? null : lettureEsistenti.get(0);
@@ -164,8 +164,9 @@ public class LetturaService {
                         lettura.setId(getNextId());
                         lettura.setFornitura(fornitura);
                         lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
+                        log.info("inserisco -------> lettura pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
                     } else {
-                        log.info("sovrascrivo lettura già esistente per il pod {} del {}/{}/{}", datiPod.pod, giorno, mese, anno);
+                        log.info("sovrascrivo lettura per il pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
                     }
 
                     switch (datiPod.datiPdp.trattamento) {
@@ -199,7 +200,7 @@ public class LetturaService {
                     lettura.setKp(Double.parseDouble(datiPod.datiPdp.kp.replaceAll(",", ".")));
 
 //                    log.debug(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
-                    log.info("lettura del {}/{}/{}", giorno, mese, anno);
+//                    log.info("lettura del {}/{}/{}", giorno, mese, anno);
 
                     letturaRepository.save(lettura);
                 } catch (Exception e) {
