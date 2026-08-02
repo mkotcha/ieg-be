@@ -47,7 +47,7 @@ public class LetturaService {
 
     public Page<Lettura> findAll(int page, int size, Sort sort) {
         Pageable pageable = PageRequest.of(page, size, sort);
-        return letturaRepository.findAll(pageable);
+        return letturaRepository.findAllFetched(pageable);
     }
 
     public String uploadFlussi(MultipartFile body) throws IOException {
@@ -153,60 +153,60 @@ public class LetturaService {
 
             //  && datiPod.misura.validato.equals("S")
 //            if (giorno == 30 && mese == 9 && anno == 2025) {
-            if (true) {
-                try {
+//            if (true) {
+            try {
 //                    log.info("parsing... {} {}", datiPod.pod, fornitura.getCliente().getRagioneSociale());
-                    LocalDate dataLettura = LocalDate.of(anno, mese, giorno);
-                    List<Lettura> lettureEsistenti = letturaRepository.findByFornituraAndDataLettura(fornitura, dataLettura);
-                    lettura = lettureEsistenti.isEmpty() ? null : lettureEsistenti.get(0);
-                    if (lettura == null) {
-                        lettura = new Lettura();
-                        lettura.setId(getNextId());
-                        lettura.setFornitura(fornitura);
-                        lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
-                        log.info("inserisco -------> lettura pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
-                    } else {
-                        log.info("sovrascrivo lettura per il pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
-                    }
+                LocalDate dataLettura = LocalDate.of(anno, mese, giorno);
+                List<Lettura> lettureEsistenti = letturaRepository.findByFornituraAndDataLettura(fornitura, dataLettura);
+                lettura = lettureEsistenti.isEmpty() ? null : lettureEsistenti.get(0);
+                if (lettura == null) {
+                    lettura = new Lettura();
+                    lettura.setId(getNextId());
+                    lettura.setFornitura(fornitura);
+                    lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
+                    log.info("inserisco -------> lettura pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
+                } else {
+                    log.info("sovrascrivo lettura per il pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
+                }
 
-                    switch (datiPod.datiPdp.trattamento) {
-                        case "O" -> lettura.setTipoContatore(TipoContatore.ORARIO);
-                        case "F" -> lettura.setTipoContatore(TipoContatore.FASCIA);
-                        case "M" -> lettura.setTipoContatore(TipoContatore.MONORARIO);
-                    }
-                    lettura.setUtile(true);
-                    switch (datiPod.misura.tipoDato) {
-                        case "E" -> lettura.setTipoLettura(TipoLettura.REALE);
-                        case "S" -> lettura.setTipoLettura(TipoLettura.STIMA);
-                    }
-                    lettura.setRaccolta(datiPod.misura.raccolta);
-                    lettura.setTipoDato(datiPod.misura.tipoDato);
-                    lettura.setCausaOstativa(datiPod.misura.causaOstativa);
-                    lettura.setValidato(datiPod.misura.validato);
-                    if (datiPod.misura.potMax != null) {
-                        lettura.setPotMax(datiPod.misura.potMax.replaceAll(",", "."));
-                    }
-                    lettura.setEaF1(Double.parseDouble(datiPod.misura.eaF1.replaceAll(",", ".")));
-                    lettura.setEaF2(Double.parseDouble(datiPod.misura.eaF2.replaceAll(",", ".")));
-                    lettura.setEaF3(Double.parseDouble(datiPod.misura.eaF3.replaceAll(",", ".")));
-                    lettura.setErF1(Double.parseDouble(datiPod.misura.erF1.replaceAll(",", ".")));
-                    lettura.setErF2(Double.parseDouble(datiPod.misura.erF2.replaceAll(",", ".")));
-                    lettura.setErF3(Double.parseDouble(datiPod.misura.erF3.replaceAll(",", ".")));
-                    lettura.setPotF1(Double.parseDouble(datiPod.misura.potF1.replaceAll(",", ".")));
-                    lettura.setPotF2(Double.parseDouble(datiPod.misura.potF2.replaceAll(",", ".")));
-                    lettura.setPotF3(Double.parseDouble(datiPod.misura.potF3.replaceAll(",", ".")));
-                    lettura.setKa(Double.parseDouble(datiPod.datiPdp.ka.replaceAll(",", ".")));
-                    lettura.setKr(Double.parseDouble(datiPod.datiPdp.kr.replaceAll(",", ".")));
-                    lettura.setKp(Double.parseDouble(datiPod.datiPdp.kp.replaceAll(",", ".")));
+                switch (datiPod.datiPdp.trattamento) {
+                    case "O" -> lettura.setTipoContatore(TipoContatore.ORARIO);
+                    case "F" -> lettura.setTipoContatore(TipoContatore.FASCIA);
+                    case "M" -> lettura.setTipoContatore(TipoContatore.MONORARIO);
+                }
+                lettura.setUtile(true);
+                switch (datiPod.misura.tipoDato) {
+                    case "E" -> lettura.setTipoLettura(TipoLettura.REALE);
+                    case "S" -> lettura.setTipoLettura(TipoLettura.STIMA);
+                }
+                lettura.setRaccolta(datiPod.misura.raccolta);
+                lettura.setTipoDato(datiPod.misura.tipoDato);
+                lettura.setCausaOstativa(datiPod.misura.causaOstativa);
+                lettura.setValidato(datiPod.misura.validato);
+                if (datiPod.misura.potMax != null) {
+                    lettura.setPotMax(datiPod.misura.potMax.replaceAll(",", "."));
+                }
+                lettura.setEaF1(Double.parseDouble(datiPod.misura.eaF1.replaceAll(",", ".")));
+                lettura.setEaF2(Double.parseDouble(datiPod.misura.eaF2.replaceAll(",", ".")));
+                lettura.setEaF3(Double.parseDouble(datiPod.misura.eaF3.replaceAll(",", ".")));
+                lettura.setErF1(Double.parseDouble(datiPod.misura.erF1.replaceAll(",", ".")));
+                lettura.setErF2(Double.parseDouble(datiPod.misura.erF2.replaceAll(",", ".")));
+                lettura.setErF3(Double.parseDouble(datiPod.misura.erF3.replaceAll(",", ".")));
+                lettura.setPotF1(Double.parseDouble(datiPod.misura.potF1.replaceAll(",", ".")));
+                lettura.setPotF2(Double.parseDouble(datiPod.misura.potF2.replaceAll(",", ".")));
+                lettura.setPotF3(Double.parseDouble(datiPod.misura.potF3.replaceAll(",", ".")));
+                lettura.setKa(Double.parseDouble(datiPod.datiPdp.ka.replaceAll(",", ".")));
+                lettura.setKr(Double.parseDouble(datiPod.datiPdp.kr.replaceAll(",", ".")));
+                lettura.setKp(Double.parseDouble(datiPod.datiPdp.kp.replaceAll(",", ".")));
 
 //                    log.debug(datiPod.pod + " " + fornitura.getCliente().getRagioneSociale());
 //                    log.info("lettura del {}/{}/{}", giorno, mese, anno);
 
-                    letturaRepository.save(lettura);
-                } catch (Exception e) {
-                    log.error("lettura non importata da file xml - {}", e.getMessage());
-                }
+                letturaRepository.save(lettura);
+            } catch (Exception e) {
+                log.error("lettura non importata da file xml - {}", e.getMessage());
             }
+//            }
         }
     }
 
