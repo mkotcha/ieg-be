@@ -62,15 +62,22 @@ public class FornituraService {
 
     public Fornitura setFornitura(FornituraDTO payload, Cliente cliente) {
         Fornitura fornitura = new Fornitura();
+        fornitura.setId(payload.id());
         fornitura.setCliente(cliente);
-        fornitura.setPrezzo(prezzoService.findById(Long.valueOf(payload.idPrezzo())));
-        fornitura.setProgrammazione(programmazioneService.findById(Long.valueOf(payload.idProgrammazione())));
+        if (payload.idPrezzo() != null) {
+            fornitura.setPrezzo(prezzoService.findById(Long.valueOf(payload.idPrezzo())));
+        }
+        if (payload.idProgrammazione() != null) {
+            fornitura.setProgrammazione(programmazioneService.findById(Long.valueOf(payload.idProgrammazione())));
+        }
         fornitura.setBta(BTA.valueOf(payload.bta()));
         fornitura.setCap(Integer.parseInt(payload.cap()));
         fornitura.setCodiceDistributore(CodiceDistributore.valueOf(payload.codiceDistributore()));
         fornitura.setComune(payload.comune());
         fornitura.setDataSwitch(LocalDate.parse(payload.dataSwitch()));
-        fornitura.setDataSwitchOut(LocalDate.parse(payload.dataSwitchOut()));
+        if (payload.dataSwitchOut() != null && !payload.dataSwitchOut().isBlank()) {
+            fornitura.setDataSwitchOut(LocalDate.parse(payload.dataSwitchOut()));
+        }
         fornitura.setFatturazione(Fatturazione.valueOf(payload.fatturazione()));
         fornitura.setFornitore(payload.fornitore());
         fornitura.setIndirizzo(payload.indirizzo());
@@ -86,14 +93,20 @@ public class FornituraService {
     public Fornitura updateFornitura(String id, FornituraDTO payload, Cliente cliente) {
         Fornitura fornitura = findById(id);
         fornitura.setCliente(cliente);
-        fornitura.setPrezzo(prezzoService.findById(Long.valueOf(payload.idPrezzo())));
-        fornitura.setProgrammazione(programmazioneService.findById(Long.valueOf(payload.idProgrammazione())));
+        if (payload.idPrezzo() != null) {
+            fornitura.setPrezzo(prezzoService.findById(Long.valueOf(payload.idPrezzo())));
+        }
+        if (payload.idProgrammazione() != null) {
+            fornitura.setProgrammazione(programmazioneService.findById(Long.valueOf(payload.idProgrammazione())));
+        }
         fornitura.setBta(BTA.valueOf(payload.bta()));
         fornitura.setCap(Integer.parseInt(payload.cap()));
         fornitura.setCodiceDistributore(CodiceDistributore.valueOf(payload.codiceDistributore()));
         fornitura.setComune(payload.comune());
         fornitura.setDataSwitch(LocalDate.parse(payload.dataSwitch()));
-        fornitura.setDataSwitchOut(LocalDate.parse(payload.dataSwitchOut()));
+        if (payload.dataSwitchOut() != null && !payload.dataSwitchOut().isBlank()) {
+            fornitura.setDataSwitchOut(LocalDate.parse(payload.dataSwitchOut()));
+        }
         fornitura.setFatturazione(Fatturazione.valueOf(payload.fatturazione()));
         fornitura.setFornitore(payload.fornitore());
         fornitura.setIndirizzo(payload.indirizzo());

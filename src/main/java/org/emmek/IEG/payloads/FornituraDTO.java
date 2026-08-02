@@ -1,6 +1,7 @@
 package org.emmek.IEG.payloads;
 
 public record FornituraDTO(
+        String id,
         String bta,
         String cap,
         String idCliente,

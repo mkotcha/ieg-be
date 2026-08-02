@@ -18,7 +18,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Setter
 public class Cliente {
     @Id
-//    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+//    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
     @Column(name = "ragione_sociale", nullable = false)

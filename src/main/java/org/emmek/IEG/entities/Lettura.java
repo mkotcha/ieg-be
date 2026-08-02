@@ -85,6 +85,7 @@ public class Lettura {
 
 
     @OneToMany(mappedBy = "lettura")
+    @JsonIgnore
     private List<LetturaOraria> lettureOrarie;
 
 }
