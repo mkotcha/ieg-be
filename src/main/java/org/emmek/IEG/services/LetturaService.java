@@ -47,7 +47,7 @@ public class LetturaService {
 
     public Page<Lettura> findAll(int page, int size, Sort sort) {
         Pageable pageable = PageRequest.of(page, size, sort);
-        return letturaRepository.findAllFetched(pageable);
+        return letturaRepository.findAll(pageable);
     }
 
     public String uploadFlussi(MultipartFile body) throws IOException {
@@ -251,10 +251,10 @@ public class LetturaService {
         lettura.setRaccolta(body.raccolta());
         lettura.setTipoDato(body.tipoDato());
         lettura.setValidato(body.validato());
-        double potF1 = Double.parseDouble(body.potF1().replaceAll(",", "."));
-        double potF2 = Double.parseDouble(body.potF2().replaceAll(",", "."));
-        double potF3 = Double.parseDouble(body.potF3().replaceAll(",", "."));
-        double potMax = Math.max(potF1, Math.max(potF2, potF3));
+        Double potF1 = Double.parseDouble(body.potF1().replaceAll(",", "."));
+        Double potF2 = Double.parseDouble(body.potF2().replaceAll(",", "."));
+        Double potF3 = Double.parseDouble(body.potF3().replaceAll(",", "."));
+        Double potMax = Math.max(potF1, Math.max(potF2, potF3));
         lettura.setPotMax(String.valueOf(potMax));
         lettura.setEaF1(Double.parseDouble(body.eaF1().replaceAll(",", ".")));
         lettura.setEaF2(Double.parseDouble(body.eaF2().replaceAll(",", ".")));
@@ -292,10 +292,10 @@ public class LetturaService {
         lettura.setRaccolta(body.raccolta());
         lettura.setTipoDato(body.tipoDato());
         lettura.setValidato(body.validato());
-        double potF1 = Double.parseDouble(body.potF1().replaceAll(",", "."));
-        double potF2 = Double.parseDouble(body.potF2().replaceAll(",", "."));
-        double potF3 = Double.parseDouble(body.potF3().replaceAll(",", "."));
-        double potMax = Math.max(potF1, Math.max(potF2, potF3));
+        Double potF1 = Double.parseDouble(body.potF1().replaceAll(",", "."));
+        Double potF2 = Double.parseDouble(body.potF2().replaceAll(",", "."));
+        Double potF3 = Double.parseDouble(body.potF3().replaceAll(",", "."));
+        Double potMax = Math.max(potF1, Math.max(potF2, potF3));
         lettura.setPotMax(String.valueOf(potMax));
         lettura.setEaF1(Double.parseDouble(body.eaF1().replaceAll(",", ".")));
         lettura.setEaF2(Double.parseDouble(body.eaF2().replaceAll(",", ".")));
@@ -365,16 +365,16 @@ public class LetturaService {
         consumi.put("perditeF1", consumi.get("EaF1") / 100 * 10.4);
         consumi.put("perditeF2", consumi.get("EaF2") / 100 * 10.4);
         consumi.put("perditeF3", consumi.get("EaF3") / 100 * 10.4);
-        double consumoTot = consumi.get("EaF1") + consumi.get("EaF2") + consumi.get("EaF3");
-        double consumoTotP = consumoTot + consumi.get("perditeF1") + consumi.get("perditeF2") + consumi.get("perditeF3");
-        double consumoTotR = consumi.get("ErF1") + consumi.get("ErF2") + consumi.get("ErF3");
-        double potMax = Math.max(letturaLast.getPotF1(), Math.max(letturaLast.getPotF2(), letturaLast.getPotF3()));
+        Double consumoTot = consumi.get("EaF1") + consumi.get("EaF2") + consumi.get("EaF3");
+        Double consumoTotP = consumoTot + consumi.get("perditeF1") + consumi.get("perditeF2") + consumi.get("perditeF3");
+        Double consumoTotR = consumi.get("ErF1") + consumi.get("ErF2") + consumi.get("ErF3");
+        Double potMax = Math.max(letturaLast.getPotF1(), Math.max(letturaLast.getPotF2(), letturaLast.getPotF3()));
         consumi.put("consumoTot", consumoTot);
         consumi.put("consumoTotP", consumoTotP);
         consumi.put("consumoTotR", consumoTotR);
         consumi.put("potMax", potMax);
         if (consumoTotR > 0) {
-            double percentualeReattiva = (consumi.get("consumoTotR") / consumi.get("consumoTot")) * 100;
+            Double percentualeReattiva = (consumi.get("consumoTotR") / consumi.get("consumoTot")) * 100;
             consumi.put("percentualeReattiva", percentualeReattiva);
         }
         return consumi;

@@ -16,7 +16,6 @@ public record FornituraDTO(
         String potenzaDisponibile,
         String potenzaImpegnata,
         String idPrezzo,
-        String idProgrammazione,
         String provincia,
         String tipoContatore,
         String tipoPrelievo

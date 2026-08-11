@@ -21,32 +21,38 @@ public class Cliente {
 //    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
+    @Column(name = "active")
+    private boolean isActive;
+
     @Column(name = "ragione_sociale", nullable = false)
     private String ragioneSociale;
 
-    @Column(name = "piva", nullable = true)
+    @Column(name = "piva")
     @JsonProperty("pIva")
     private String pIva;
 
-    @Column(name = "CF", nullable = true)
+    @Column(name = "CF")
     private String cf;
 
-    @Column(name = "indirizzo", nullable = true)
+    @Column(name = "indirizzo")
     private String indirizzo;
 
-    @Column(name = "cap", nullable = true)
+    @Column(name = "civico")
+    private String civico;
+
+    @Column(name = "cap")
     private int cap;
 
-    @Column(name = "comune", nullable = true)
+    @Column(name = "comune")
     private String comune;
 
-    @Column(name = "provincia", nullable = true)
+    @Column(name = "provincia")
     private String provincia;
 
-    @Column(name = "telefono", nullable = true)
+    @Column(name = "telefono")
     private String telefono;
 
-    @Column(name = "email", nullable = true)
+    @Column(name = "email")
     private String email;
 
     @JsonIgnore

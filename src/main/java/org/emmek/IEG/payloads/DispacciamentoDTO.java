@@ -1,14 +1,14 @@
 package org.emmek.IEG.payloads;
 
 public record DispacciamentoDTO(
-        double capacita,
-        double eolico,
-        double costoAm,
-        double dis,
-        double int73,
-        double msd,
-        double sicurezza,
-        double trasmissione,
+        Double capacita,
+        Double eolico,
+        Double costoAm,
+        Double dis,
+        Double int73,
+        Double msd,
+        Double sicurezza,
+        Double trasmissione,
         int trimestre,
         int anno
 

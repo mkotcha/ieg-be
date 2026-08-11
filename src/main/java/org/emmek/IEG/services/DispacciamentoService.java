@@ -31,14 +31,8 @@ public class DispacciamentoService {
     public Dispacciamento save(DispacciamentoDTO body) {
         Dispacciamento dispacciamento = new Dispacciamento();
         dispacciamento.setCapacita(body.capacita());
-        dispacciamento.setEolico(body.eolico());
         dispacciamento.setCostoAm(body.costoAm());
         dispacciamento.setDis(body.dis());
-        dispacciamento.setInt73(body.int73());
-        dispacciamento.setMsd(body.msd());
-        dispacciamento.setSicurezza(body.sicurezza());
-        dispacciamento.setTrasmissione(body.trasmissione());
-        dispacciamento.setTrimestre(body.trimestre());
         dispacciamento.setAnno(body.anno());
 
         return dispacciamentoRepository.save(dispacciamento);
@@ -47,20 +41,14 @@ public class DispacciamentoService {
     public Dispacciamento update(long id, DispacciamentoDTO body) {
         Dispacciamento dispacciamento = dispacciamentoRepository.findById(id).orElseThrow(() -> new NotFoundException("Dispacciamento non trovato"));
         dispacciamento.setCapacita(body.capacita());
-        dispacciamento.setEolico(body.eolico());
         dispacciamento.setCostoAm(body.costoAm());
         dispacciamento.setDis(body.dis());
-        dispacciamento.setInt73(body.int73());
-        dispacciamento.setMsd(body.msd());
-        dispacciamento.setSicurezza(body.sicurezza());
-        dispacciamento.setTrasmissione(body.trasmissione());
-        dispacciamento.setTrimestre(body.trimestre());
         dispacciamento.setAnno(body.anno());
 
         return dispacciamentoRepository.save(dispacciamento);
     }
 
-    public Dispacciamento findByTrimestreAndAnno(int trimestre, Integer anno) {
-        return dispacciamentoRepository.findByTrimestreAndAnno(trimestre, anno).orElseThrow(() -> new NotFoundException("Dispacciamento trimestre: " + trimestre + " - anno: " + anno + "non trovato"));
+    public Dispacciamento findByTrimestreAndAnno(int mese, Integer anno) {
+        return dispacciamentoRepository.findByMeseAndAnno(mese, anno).orElseThrow(() -> new NotFoundException("Dispacciamento trimestre: " + mese + " - anno: " + anno + "non trovato"));
     }
 }

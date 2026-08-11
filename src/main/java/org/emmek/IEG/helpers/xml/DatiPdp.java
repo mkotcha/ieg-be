@@ -16,7 +16,7 @@ public class DatiPdp {
     public String trattamento;
 
     @XmlElement(name = "Tensione")
-    public double tensione;
+    public Double tensione;
 
     @XmlElement(name = "Forfait")
     public String forfait;

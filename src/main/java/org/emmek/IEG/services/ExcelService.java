@@ -127,7 +127,7 @@ public class ExcelService {
         }
     }
 
-    public void writeCell(Workbook workbook, String sheetName, String cellName, double value) {
+    public void writeCell(Workbook workbook, String sheetName, String cellName, Double value) {
         Sheet sheet = workbook.getSheet(sheetName);
         Name namedCell = workbook.getName(cellName);
         if (namedCell == null) {
@@ -193,9 +193,9 @@ public class ExcelService {
             }
             Period period = Period.between(fatturaSingola.getFattura().getDataFattura(), LocalDate.now());
             int delta = period.getMonths() + 1;
-            double totF1 = 0;
-            double totF2 = 0;
-            double totF3 = 0;
+            Double totF1 = 0.0;
+            Double totF2 = 0.0;
+            Double totF3 = 0.0;
             for (int i = 0; i < 12; i++) {
                 Map<String, Double> consumi = letturaService.getConsumi(fatturaSingola.getFornitura(), i + delta);
                 writeCell(workbook, sheetName, "consumi_" + i + "_f1", String.format(it, "%.2f", consumi.get("EaF1")));
@@ -243,24 +243,18 @@ public class ExcelService {
             writeCell(workbook, sheetName, "perdite_F3", fatturaSingola.getPerditeF3());
             writeCell(workbook, sheetName, "consumo_tot", fatturaSingola.getConsumoTot());
             writeCell(workbook, sheetName, "consumo_tot_perdite", fatturaSingola.getConsumoTotP());
-            writeCell(workbook, sheetName, "spread", fatturaSingola.getFornitura().getPrezzo().getSpread());
-            writeCell(workbook, sheetName, "commercializzazione", fatturaSingola.getFornitura().getProgrammazione().getCommercializzazione());
+            writeCell(workbook, sheetName, "spread", fatturaSingola.getFornitura().getOfferta().getSpread());
             Dispacciamento dispacciamento = fatturaSingola.getDispacciamento();
             writeCell(workbook, sheetName, "costo_am", dispacciamento.getCostoAm());
-            writeCell(workbook, sheetName, "MSD", dispacciamento.getMsd());
-            writeCell(workbook, sheetName, "sicurezza", dispacciamento.getSicurezza());
-            writeCell(workbook, sheetName, "eolico", dispacciamento.getEolico());
             writeCell(workbook, sheetName, "DIS", dispacciamento.getDis());
             writeCell(workbook, sheetName, "capacita", dispacciamento.getCapacita());
-            double parzialeMateria = fatturaSingola.getConsumoF1() * pun.getF1() +
+            Double parzialeMateria = fatturaSingola.getConsumoF1() * pun.getF1() +
                     fatturaSingola.getConsumoF2() * pun.getF2() +
                     fatturaSingola.getConsumoF3() * pun.getF3() +
                     fatturaSingola.getPerditeF1() * pun.getF1() +
                     fatturaSingola.getPerditeF2() * pun.getF2() +
                     fatturaSingola.getPerditeF3() * pun.getF3() +
-                    fatturaSingola.getConsumoTotP() * fatturaSingola.getFornitura().getPrezzo().getSpread();
-            writeCell(workbook, sheetName, "formula_programmazione", fatturaSingola.getFornitura().getProgrammazione().getOneriProgrammazione() * parzialeMateria / 100);
-            writeCell(workbook, sheetName, "INT", dispacciamento.getInt73());
+                    fatturaSingola.getConsumoTotP() * fatturaSingola.getFornitura().getOfferta().getSpread();
             writeCell(workbook, sheetName, "totale_materia", fatturaSingola.getTotaleMateria());
             Oneri oneri = fatturaSingola.getOneri();
             writeCell(workbook, sheetName, "qf_tud", oneri.getQfTud());
@@ -268,7 +262,6 @@ public class ExcelService {
             writeCell(workbook, sheetName, "qp_tdm", oneri.getQpTdm());
             writeCell(workbook, sheetName, "qe_tud", oneri.getQeTud());
             writeCell(workbook, sheetName, "qe_uc3", oneri.getQeUc3());
-            writeCell(workbook, sheetName, "trasmissione", dispacciamento.getTrasmissione());
             writeCell(workbook, sheetName, "totale_trasporto", fatturaSingola.getTotaleTrasporto());
             writeCell(workbook, sheetName, "qf_asos", oneri.getQfAsos());
             writeCell(workbook, sheetName, "qf_arim", oneri.getQfArim());

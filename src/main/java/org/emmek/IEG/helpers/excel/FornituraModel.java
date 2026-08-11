@@ -29,10 +29,10 @@ public class FornituraModel {
     private int capFornitura;
 
     @ExcelCellName("potenza disponibile")
-    private double potenzaDisponibile;
+    private Double potenzaDisponibile;
 
     @ExcelCellName("potenza impegnata")
-    private double potenzaImpegnata;
+    private Double potenzaImpegnata;
 
     @ExcelCellName("tipo prelievo")
     private String tipoPrelievo;
@@ -49,9 +49,6 @@ public class FornituraModel {
     @ExcelCellName("fatturazione")
     private String fatturazione;
 
-    @ExcelCellName("dispacciamento")
-    private String dispacciamento;
-
     @ExcelCellName("oneri")
     private String bta;
 
@@ -61,11 +58,14 @@ public class FornituraModel {
     @ExcelCellName("data switch")
     private String dataSwitch;
 
-    @ExcelCellName("maggiorazione PUN")
-    private double maggiorazione;
+    @ExcelCellName("PUN")
+    private Double maggiorazione;
+
+    @ExcelCellName("offerta")
+    private String offerta;
 
     @ExcelCellName("spread")
-    private double spread;
+    private Double spread;
 
 
 }
