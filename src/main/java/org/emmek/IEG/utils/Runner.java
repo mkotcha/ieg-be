@@ -2,6 +2,7 @@ package org.emmek.IEG.utils;
 
 
 import com.poiji.bind.Poiji;
+import com.poiji.option.PoijiOptions;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.helpers.excel.ClienteModel;
 import org.emmek.IEG.helpers.excel.FornituraModel;
 import org.emmek.IEG.helpers.excel.LetturaModel;
+import org.emmek.IEG.helpers.excel.OffertaModel;
 import org.emmek.IEG.helpers.xml.FlussoMisure;
 import org.emmek.IEG.repositories.LetturaRepository;
 import org.emmek.IEG.services.*;
@@ -40,16 +42,13 @@ public class Runner implements CommandLineRunner {
     ClienteService clienteService;
 
     @Autowired
-    PrezzoService prezzoService;
+    OffertaService offertaService;
 
     @Autowired
     FornituraService fornituraService;
 
     @Autowired
     LetturaService letturaService;
-
-    @Autowired
-    ProgrammazioneService programmazioneService;
 
     @Autowired
     LetturaRepository letturaRepository;
@@ -71,9 +70,32 @@ public class Runner implements CommandLineRunner {
         createRoleIfNotExist("ADMIN");
         createRoleIfNotExist("USER");
         crateAdminIfNotExist(username);
-        importClienti();
-        importForniture();
+//        importClienti();
+//        importForniture();
+//        importOfferte();
         importLetture();
+    }
+
+    private void importOfferte() {
+        PoijiOptions options = PoijiOptions.PoijiOptionsBuilder.settings()
+                .sheetName("Offerte")
+                .build();
+        List<OffertaModel> offerte = Poiji.fromExcel(new File("data/index.xlsx"), OffertaModel.class, options);
+        for (OffertaModel offertaModel : offerte) {
+            Offerta offerta = new Offerta();
+            offerta.setNome(offertaModel.getNome() != null ? offertaModel.getNome() : "new");
+            offerta.setCodice(offertaModel.getCodice());
+            offerta.setTipo(TipoOfferta.fromString(offertaModel.getTipo()));
+            offerta.setCapacitaMaggiorazione(offertaModel.isCapacitaMaggiorazione());
+            offerta.setMaggiorazione(IegUtils.parseItDouble(offertaModel.getMaggiorazione()));
+            offerta.setOcv(IegUtils.parseItDouble(offertaModel.getOcv()));
+            offerta.setOcf(IegUtils.parseItDouble(offertaModel.getOcf()));
+
+            offerta.setDataInizio(IegUtils.parseItDate(offertaModel.getDataInizio()));
+            offerta.setDataFine(IegUtils.parseItDate(offertaModel.getDataFine()));
+
+            offertaService.save(offerta);
+        }
     }
 
     private void importLetture() {
@@ -150,20 +172,6 @@ public class Runner implements CommandLineRunner {
         }
     }
 
-    private Prezzo createPrezzoIfNotExist(String nome, double maggiorazione, double spread) {
-        Prezzo prezzo;
-        try {
-            prezzo = prezzoService.findByNome(nome);
-        } catch (RuntimeException e) {
-            prezzo = new Prezzo();
-            prezzo.setNome(nome);
-            prezzo.setPun(true);
-            prezzo.setMaggiorazione(maggiorazione);
-            prezzo.setSpread(spread);
-        }
-        return prezzoService.save(prezzo);
-    }
-
     public void importClienti() {
         List<ClienteModel> clienti = Poiji.fromExcel(new File("data/clienti.xlsx"), ClienteModel.class);
         for (ClienteModel clienteModel : clienti) {
@@ -208,17 +216,9 @@ public class Runner implements CommandLineRunner {
             }
             fornitura.setFornitore(fornituraModel.getFornitore());
             fornitura.setFatturazione(Fatturazione.MENSILE);
-            Prezzo prezzo;
-            Programmazione programmazione;
-//            if (fornituraModel.getDispacciamento().equals("10 ott")) {
-//                prezzo = createPrezzoIfNotExist("BASE " + fornituraModel.getSpread(), fornituraModel.getMaggiorazione(), fornituraModel.getSpread());
-//                programmazione = createProgrammazioneIfNotExist("BASE");
-//            } else {
-//                prezzo = createPrezzoIfNotExist("MAGGIORATO " + fornituraModel.getMaggiorazione(), fornituraModel.getMaggiorazione(), fornituraModel.getSpread());
-//                programmazione = createProgrammazioneIfNotExist("MAGGIORATO");
-//            }
-//            fornitura.setProgrammazione(programmazione);
-//            fornitura.setPrezzo(prezzo);
+//            Offerta offerta = offertaService.findByNome(fornituraModel.getOfferta());
+//            fornitura.setOfferta(offerta);
+
             fornitura.setBta(BTA.valueOf(fornituraModel.getBta()));
             fornitura.setIva(Double.parseDouble(fornituraModel.getIva()));
             fornitura.setDataSwitch(LocalDate.parse(fornituraModel.getDataSwitch()));
@@ -226,24 +226,5 @@ public class Runner implements CommandLineRunner {
             fornituraService.save(fornitura);
         }
 
-    }
-
-    private Programmazione createProgrammazioneIfNotExist(String maggiorato) {
-        Programmazione programmazione;
-        try {
-            programmazione = programmazioneService.findByNome(maggiorato);
-        } catch (RuntimeException e) {
-            programmazione = new Programmazione();
-            programmazione.setNome(maggiorato);
-
-            if (maggiorato.equals("BASE")) {
-                programmazione.setOneriProgrammazione(14);
-                programmazione.setCommercializzazione(10.47022);
-            } else {
-                programmazione.setOneriProgrammazione(8);
-                programmazione.setCommercializzazione(15);
-            }
-        }
-        return programmazioneService.save(programmazione);
     }
 }

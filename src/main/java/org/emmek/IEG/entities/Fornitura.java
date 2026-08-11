@@ -30,27 +30,33 @@ public class Fornitura {
     @Column(name = "pod", nullable = false)
     private String id;
 
+    @Column(name = "active")
+    private boolean isActive;
+
     @ManyToOne
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
 
-    @Column(name = "indirizzo", nullable = true)
+    @Column(name = "indirizzo")
     private String indirizzo;
 
-    @Column(name = "cap", nullable = true)
+    @Column(name = "civico")
+    private String civico;
+
+    @Column(name = "cap")
     private int cap;
 
-    @Column(name = "comune", nullable = true)
+    @Column(name = "comune")
     private String comune;
 
-    @Column(name = "provincia", nullable = true)
+    @Column(name = "provincia")
     private String provincia;
 
     @Column(name = "potenza_disponibile", nullable = false)
-    private double potenzaDisponibile;
+    private Double potenzaDisponibile;
 
     @Column(name = "potenza_impegnata", nullable = false)
-    private double potenzaImpegnata;
+    private Double potenzaImpegnata;
 
     @Column(name = "tipo_prelievo", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -75,7 +81,7 @@ public class Fornitura {
     private BTA bta;
 
     @Column(name = "iva", nullable = false)
-    private double iva;
+    private Double iva;
 
     @Column(name = "data_switch", nullable = false)
     private LocalDate dataSwitch;
@@ -84,25 +90,21 @@ public class Fornitura {
     private LocalDate dataSwitchOut;
 
     @ManyToOne
-    @JoinColumn(name = "prezzo_id", nullable = true)
-    private Prezzo prezzo;
+    @JoinColumn(name = "offerta_id")
+    private Offerta offerta;
 
-    @ManyToOne
-    @JoinColumn(name = "programmazione_id", nullable = true)
-    private Programmazione programmazione;
-
+    @JsonIgnore
     @ManyToMany
     @JoinTable(
             name = "fatture_forniture",
             joinColumns = @JoinColumn(name = "fornitura_pod"),
             inverseJoinColumns = @JoinColumn(name = "fattura_id")
     )
-    @JsonIgnore
     private List<Fattura> fatture;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "fornitura")
     @OnDelete(action = OnDeleteAction.CASCADE)
-    @JsonIgnore
     private List<Lettura> letture;
 }
 

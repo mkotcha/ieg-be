@@ -20,13 +20,13 @@ public class Pun {
     private long id;
 
     @Column(name = "f1", nullable = false)
-    private double f1;
+    private Double f1;
 
     @Column(name = "f2", nullable = false)
-    private double f2;
+    private Double f2;
 
     @Column(name = "f3", nullable = false)
-    private double f3;
+    private Double f3;
 
     @Column(name = "mese", nullable = false)
     private int mese;

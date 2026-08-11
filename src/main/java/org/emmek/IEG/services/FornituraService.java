@@ -25,10 +25,7 @@ public class FornituraService {
 //    private ClienteService clienteService;
 
     @Autowired
-    private PrezzoService prezzoService;
-
-    @Autowired
-    private ProgrammazioneService programmazioneService;
+    private OffertaService offertaService;
 
     public Page<Fornitura> findAll(int page, int size, String sort) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sort));
@@ -65,11 +62,9 @@ public class FornituraService {
         fornitura.setId(payload.id());
         fornitura.setCliente(cliente);
         if (payload.idPrezzo() != null) {
-            fornitura.setPrezzo(prezzoService.findById(Long.valueOf(payload.idPrezzo())));
+            fornitura.setOfferta(offertaService.findById(Long.valueOf(payload.idPrezzo())));
         }
-        if (payload.idProgrammazione() != null) {
-            fornitura.setProgrammazione(programmazioneService.findById(Long.valueOf(payload.idProgrammazione())));
-        }
+
         fornitura.setBta(BTA.valueOf(payload.bta()));
         fornitura.setCap(Integer.parseInt(payload.cap()));
         fornitura.setCodiceDistributore(CodiceDistributore.valueOf(payload.codiceDistributore()));
@@ -94,11 +89,9 @@ public class FornituraService {
         Fornitura fornitura = findById(id);
         fornitura.setCliente(cliente);
         if (payload.idPrezzo() != null) {
-            fornitura.setPrezzo(prezzoService.findById(Long.valueOf(payload.idPrezzo())));
+            fornitura.setOfferta(offertaService.findById(Long.valueOf(payload.idPrezzo())));
         }
-        if (payload.idProgrammazione() != null) {
-            fornitura.setProgrammazione(programmazioneService.findById(Long.valueOf(payload.idProgrammazione())));
-        }
+        
         fornitura.setBta(BTA.valueOf(payload.bta()));
         fornitura.setCap(Integer.parseInt(payload.cap()));
         fornitura.setCodiceDistributore(CodiceDistributore.valueOf(payload.codiceDistributore()));

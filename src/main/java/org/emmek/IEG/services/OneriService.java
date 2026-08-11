@@ -33,7 +33,6 @@ public class OneriService {
         oneri.setQeUc3(body.qeUc3());
         oneri.setQpArim(body.qpArim());
         oneri.setQpAsos(body.qpAsos());
-        oneri.setQpOds(body.qpOds());
         oneri.setQfArim(body.qfArim());
         oneri.setQfAsos(body.qfAsos());
         oneri.setTrimestre(body.trimestre());
@@ -54,7 +53,6 @@ public class OneriService {
         oneri.setQeUc3(body.qeUc3());
         oneri.setQpArim(body.qpArim());
         oneri.setQpAsos(body.qpAsos());
-        oneri.setQpOds(body.qpOds());
         oneri.setQfArim(body.qfArim());
         oneri.setQfAsos(body.qfAsos());
         oneri.setTrimestre(body.trimestre());

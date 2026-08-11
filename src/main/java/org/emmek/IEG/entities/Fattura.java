@@ -34,34 +34,34 @@ public class Fattura {
     private int anno;
 
     @Column(name = "consumo_tot")
-    private double consumoTot;
+    private Double consumoTot;
 
     @Column(name = "consumo_tot_perdite")
-    private double consumoTotP;
+    private Double consumoTotP;
 
     @Column(name = "consumo_tot_reattivo")
-    private double consumoTotR;
+    private Double consumoTotR;
 
     @Column(name = "potenza_prelevata")
-    private double potenzaPrelevata;
+    private Double potenzaPrelevata;
 
     @Column(name = "totale_imposte")
-    private double totaleImposte;
+    private Double totaleImposte;
 
     @Column(name = "totale_materia")
-    private double totaleMateria;
+    private Double totaleMateria;
 
     @Column(name = "totale_trasporto")
-    private double totaleTrasporto;
+    private Double totaleTrasporto;
 
     @Column(name = "totale_oneri")
-    private double totaleOneri;
+    private Double totaleOneri;
 
     @Column(name = "totale_iva")
-    private double totaleIva;
+    private Double totaleIva;
 
     @Column(name = "totale_imponibile")
-    private double totaleImponibile;
+    private Double totaleImponibile;
 
     @Column(name = "xlsx")
     private String xlsx;

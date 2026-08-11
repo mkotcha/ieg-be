@@ -18,32 +18,20 @@ public class Dispacciamento {
     @Column(name = "id")
     private long id;
 
-    @Column(name = "capacita", nullable = false)
-    private double capacita;
-
-    @Column(name = "eolico", nullable = false)
-    private double eolico;
-
     @Column(name = "costo_am", nullable = false)
-    private double costoAm;
+    private Double costoAm;
 
     @Column(name = "dis", nullable = false)
-    private double dis;
+    private Double dis;
 
-    @Column(name = "int", nullable = false)
-    private double int73;
+    @Column(name = "capacita", nullable = false)
+    private Double capacita;
 
-    @Column(name = "msd", nullable = false)
-    private double msd;
+    @Column(name = "sbilanciamento", nullable = false)
+    private Double sbilanciamento;
 
-    @Column(name = "sicurezza", nullable = false)
-    private double sicurezza;
-
-    @Column(name = "trasmissione", nullable = false)
-    private double trasmissione;
-
-    @Column(name = "trimestre", nullable = false)
-    private int trimestre;
+    @Column(name = "mese", nullable = false)
+    private int mese;
 
     @Column(name = "anno", nullable = false)
     private int anno;

@@ -87,8 +87,8 @@ public class FatturaService {
             fatturaSingola.setConsumoTotP(consumi.get("consumoTotP"));
             fatturaSingola.setPotenzaPrelevata(consumi.get("potMax"));
             fatturaSingola.setTotaleImposte(consumi.get("consumoTot") * 0.0125);
-            double totaleMateria;
-            double parzialeMateria;
+            Double totaleMateria;
+            Double parzialeMateria;
             Pun pun = punService.getByMeseAndAnno(mese, anno);
             Dispacciamento dispacciamento = fatturaSingola.getDispacciamento();
             parzialeMateria = 0 +
@@ -98,28 +98,21 @@ public class FatturaService {
                     fatturaSingola.getPerditeF1() * pun.getF1() +
                     fatturaSingola.getPerditeF2() * pun.getF2() +
                     fatturaSingola.getPerditeF3() * pun.getF3() +
-                    fatturaSingola.getConsumoTotP() * fatturaSingola.getFornitura().getPrezzo().getSpread();
+                    fatturaSingola.getConsumoTotP() * fatturaSingola.getFornitura().getOfferta().getSpread();
             totaleMateria = parzialeMateria +
-                    fatturaSingola.getFornitura().getProgrammazione().getCommercializzazione() +
                     dispacciamento.getCostoAm() +
-                    (dispacciamento.getMsd() * fatturaSingola.getConsumoTotP()) +
-                    (dispacciamento.getSicurezza() * fatturaSingola.getConsumoTotP()) +
-                    (dispacciamento.getEolico() * fatturaSingola.getConsumoTotP()) +
                     (dispacciamento.getDis() * fatturaSingola.getConsumoTotP()) +
-                    (dispacciamento.getCapacita() * fatturaSingola.getConsumoTotP()) +
-                    (fatturaSingola.getFornitura().getProgrammazione().getOneriProgrammazione() * parzialeMateria / 100) +
-                    (dispacciamento.getInt73() * fatturaSingola.getConsumoTotP());
+                    (dispacciamento.getCapacita() * fatturaSingola.getConsumoTotP());
             fatturaSingola.setTotaleMateria(totaleMateria);
             Oneri oneri = fatturaSingola.getOneri();
-            double totaleTrasporto = 0 +
+            Double totaleTrasporto = 0 +
                     oneri.getQfTud() +
                     oneri.getQfMis() +
                     oneri.getQpTdm() * fatturaSingola.getFornitura().getPotenzaImpegnata() +
                     oneri.getQeTud() * fatturaSingola.getConsumoTot() +
-                    oneri.getQeUc3() * fatturaSingola.getConsumoTot() +
-                    dispacciamento.getTrasmissione() * fatturaSingola.getConsumoTot();
+                    oneri.getQeUc3() * fatturaSingola.getConsumoTot();
             fatturaSingola.setTotaleTrasporto(totaleTrasporto);
-            double totaleOneri = 0 +
+            Double totaleOneri = 0 +
                     oneri.getQfAsos() +
                     oneri.getQfArim() +
                     oneri.getQpAsos() * fatturaSingola.getFornitura().getPotenzaImpegnata() +

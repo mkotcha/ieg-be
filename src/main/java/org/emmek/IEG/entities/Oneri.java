@@ -23,40 +23,52 @@ public class Oneri {
     private BTA tipo;
 
     @Column(name = "qe_tud", nullable = false)
-    private double qeTud;
+    private Double qeTud;
 
     @Column(name = "qp_tdm", nullable = false)
-    private double qpTdm;
+    private Double qpTdm;
 
     @Column(name = "qf_tud", nullable = false)
-    private double qfTud;
+    private Double qfTud;
 
     @Column(name = "qf_mis", nullable = false)
-    private double qfMis;
+    private Double qfMis;
 
     @Column(name = "qe_arim", nullable = false)
-    private double qeArim;
+    private Double qeArim;
 
     @Column(name = "qe_asos", nullable = false)
-    private double qeAsos;
+    private Double qeAsos;
 
     @Column(name = "qe_uc3", nullable = false)
-    private double qeUc3;
+    private Double qeUc3;
+
+    @Column(name = "qe_uc6", nullable = false)
+    private Double qeUc6;
 
     @Column(name = "qp_arim", nullable = false)
-    private double qpArim;
+    private Double qpArim;
 
     @Column(name = "qp_asos", nullable = false)
-    private double qpAsos;
-
-    @Column(name = "qp_ods", nullable = false)
-    private double qpOds;
+    private Double qpAsos;
 
     @Column(name = "qf_arim", nullable = false)
-    private double qfArim;
+    private Double qfArim;
 
     @Column(name = "qf_asos", nullable = false)
-    private double qfAsos;
+    private Double qfAsos;
+
+    @Column(name = "qf_uc6", nullable = false)
+    private Double qfUc6;
+
+    @Column(name = "qf_dbt", nullable = false)
+    private Double qfDbt;
+
+    @Column(name = "trasmissione", nullable = false)
+    private Double trasmissione;
+
+    @Column(name = "accise", nullable = false)
+    private Double accise;
 
     @Column(name = "trimestre", nullable = false)
     private int trimestre;

@@ -31,61 +31,61 @@ public class FatturaSingola {
     private Fornitura fornitura;
 
     @Column(name = "consumo_f1")
-    private double consumoF1;
+    private Double consumoF1;
 
     @Column(name = "consumo_f2")
-    private double consumoF2;
+    private Double consumoF2;
 
     @Column(name = "consumo_f3")
-    private double consumoF3;
+    private Double consumoF3;
 
     @Column(name = "consumo_f1r")
-    private double consumoF1r;
+    private Double consumoF1r;
 
     @Column(name = "consumo_f2r")
-    private double consumoF2r;
+    private Double consumoF2r;
 
     @Column(name = "consumo_f3r")
-    private double consumoF3r;
+    private Double consumoF3r;
 
     @Column(name = "consumo_tot")
-    private double consumoTot;
+    private Double consumoTot;
 
     @Column(name = "consumo_tot_perdite")
-    private double consumoTotP;
+    private Double consumoTotP;
 
     @Column(name = "consumo_tot_reattivo")
-    private double consumoTotR;
+    private Double consumoTotR;
 
     @Column(name = "perditeF1")
-    private double perditeF1;
+    private Double perditeF1;
 
     @Column(name = "perditeF2")
-    private double perditeF2;
+    private Double perditeF2;
 
     @Column(name = "perditeF3")
-    private double perditeF3;
+    private Double perditeF3;
 
     @Column(name = "potenza_prelevata")
-    private double potenzaPrelevata;
+    private Double potenzaPrelevata;
 
     @Column(name = "totale_imposte")
-    private double totaleImposte;
+    private Double totaleImposte;
 
     @Column(name = "totale_materia")
-    private double totaleMateria;
+    private Double totaleMateria;
 
     @Column(name = "totale_trasporto")
-    private double totaleTrasporto;
+    private Double totaleTrasporto;
 
     @Column(name = "totale_oneri")
-    private double totaleOneri;
+    private Double totaleOneri;
 
     @Column(name = "totale_iva")
-    private double totaleIva;
+    private Double totaleIva;
 
     @Column(name = "totale_imponibile")
-    private double totaleImponibile;
+    private Double totaleImponibile;
 
     @ManyToOne
     @JoinColumn(name = "dispacciamento_id", nullable = false)
