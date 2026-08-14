@@ -25,13 +25,13 @@ public class DispacciamentoController {
     }
 
     @GetMapping("/{id}")
-    public Dispacciamento getDispacciamento(@PathVariable long id) {
+    public Dispacciamento getDispacciamento(@PathVariable Long id) {
         return dispacciamentoService.findById(id);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public void delete(@PathVariable long id) {
+    public void delete(@PathVariable Long id) {
         dispacciamentoService.delete(id);
     }
 
@@ -44,7 +44,7 @@ public class DispacciamentoController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public Dispacciamento update(@PathVariable long id, @RequestBody @Validated DispacciamentoDTO body, BindingResult validation) {
+    public Dispacciamento update(@PathVariable Long id, @RequestBody @Validated DispacciamentoDTO body, BindingResult validation) {
         return dispacciamentoService.update(id, body);
     }
 

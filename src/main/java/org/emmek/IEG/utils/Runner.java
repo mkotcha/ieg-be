@@ -9,12 +9,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.emmek.IEG.entities.*;
 import org.emmek.IEG.enums.*;
 import org.emmek.IEG.exceptions.NotFoundException;
-import org.emmek.IEG.helpers.excel.ClienteModel;
-import org.emmek.IEG.helpers.excel.FornituraModel;
-import org.emmek.IEG.helpers.excel.LetturaModel;
-import org.emmek.IEG.helpers.excel.OffertaModel;
-import org.emmek.IEG.helpers.xml.FlussoMisure;
+import org.emmek.IEG.model.excel.*;
+import org.emmek.IEG.model.xml.FlussoMisure;
+import org.emmek.IEG.repositories.DispacciamentoRepository;
 import org.emmek.IEG.repositories.LetturaRepository;
+import org.emmek.IEG.repositories.OneriRepository;
 import org.emmek.IEG.services.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +52,12 @@ public class Runner implements CommandLineRunner {
     @Autowired
     LetturaRepository letturaRepository;
 
+    @Autowired
+    OneriRepository oneriRepository;
+
+    @Autowired
+    DispacciamentoRepository dispacciamentoRepository;
+
     @Value("${admin.username}")
     private String username;
 
@@ -73,7 +78,60 @@ public class Runner implements CommandLineRunner {
 //        importClienti();
 //        importForniture();
 //        importOfferte();
-        importLetture();
+//        importLetture();
+//        importOneri();
+//        importDispacciamento();
+    }
+
+    private void importDispacciamento() {
+        PoijiOptions options = PoijiOptions.PoijiOptionsBuilder.settings()
+                .sheetName("dispacciamento")
+                .build();
+        List<DispacciamentoModel> dispacciamentoModelList = Poiji.fromExcel(new File("data/index.xlsx"), DispacciamentoModel.class, options);
+        for (DispacciamentoModel dispacciamentoModel : dispacciamentoModelList) {
+            Dispacciamento dispacciamento = new Dispacciamento();
+            dispacciamento.setCostoAm(dispacciamentoModel.getCostoAm());
+            dispacciamento.setDis(dispacciamentoModel.getDis());
+            dispacciamento.setCapacita(dispacciamentoModel.getCapacita());
+            dispacciamento.setSbilanciamento(dispacciamentoModel.getSbilanciamento());
+            dispacciamento.setMese(dispacciamentoModel.getMese());
+            dispacciamento.setAnno(dispacciamentoModel.getAnno());
+            dispacciamentoRepository.save(dispacciamento);
+
+        }
+    }
+
+    private void importOneri() {
+        PoijiOptions options = PoijiOptions.PoijiOptionsBuilder.settings()
+                .sheetName("oneri di sistema")
+                .build();
+        List<OneriModel> oneriModelList = Poiji.fromExcel(new File("data/index.xlsx"), OneriModel.class, options);
+        for (OneriModel oneriModel : oneriModelList) {
+            Oneri oneri = new Oneri();
+            oneri.setTipo(BTA.valueOf(oneriModel.getTipo()));
+            oneri.setQeTud(oneriModel.getQeTud());
+            oneri.setQpTdm(oneriModel.getQpTdm());
+            oneri.setQfTud(oneriModel.getQfTud());
+            oneri.setQfMis(oneriModel.getQfMis());
+            oneri.setQeArim(oneriModel.getQeArim());
+            oneri.setQeAsos(oneriModel.getQeAsos());
+            oneri.setQeUc3(oneriModel.getQeUc3());
+            oneri.setQeUc6(oneriModel.getQeUc6());
+            oneri.setQpArim(oneriModel.getQpArim());
+            oneri.setQpAsos(oneriModel.getQpAsos());
+            oneri.setQfArim(oneriModel.getQfArim());
+            oneri.setQfAsos(oneriModel.getQfAsos());
+            oneri.setQfUc6(oneriModel.getQfUc6());
+            oneri.setQfDbt(oneriModel.getQfDbt());
+            oneri.setTrasmissione(oneriModel.getTrasmissione());
+            oneri.setAccise(oneriModel.getAccise());
+            oneri.setTrimestre(oneriModel.getTrimestre());
+            oneri.setAnno(oneriModel.getAnno());
+
+            oneriRepository.save(oneri);
+        }
+
+
     }
 
     private void importOfferte() {

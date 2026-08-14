@@ -16,7 +16,7 @@ public class Dispacciamento {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private long id;
+    private Long id;
 
     @Column(name = "costo_am", nullable = false)
     private Double costoAm;
@@ -24,10 +24,10 @@ public class Dispacciamento {
     @Column(name = "dis", nullable = false)
     private Double dis;
 
-    @Column(name = "capacita", nullable = false)
+    @Column(name = "capacita")
     private Double capacita;
 
-    @Column(name = "sbilanciamento", nullable = false)
+    @Column(name = "sbilanciamento")
     private Double sbilanciamento;
 
     @Column(name = "mese", nullable = false)

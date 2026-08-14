@@ -9,8 +9,8 @@ import org.emmek.IEG.entities.Lettura;
 import org.emmek.IEG.enums.TipoContatore;
 import org.emmek.IEG.enums.TipoLettura;
 import org.emmek.IEG.exceptions.NotFoundException;
-import org.emmek.IEG.helpers.xml.DatiPod;
-import org.emmek.IEG.helpers.xml.FlussoMisure;
+import org.emmek.IEG.model.xml.DatiPod;
+import org.emmek.IEG.model.xml.FlussoMisure;
 import org.emmek.IEG.payloads.LetturaDTO;
 import org.emmek.IEG.repositories.LetturaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -226,7 +226,7 @@ public class LetturaService {
         }
     }
 
-    public long getNextId() {
+    public Long getNextId() {
         Long maxId = letturaRepository.findMaxId();
         return (maxId == null ? 1 : maxId + 1);
     }
@@ -278,12 +278,12 @@ public class LetturaService {
         letturaRepository.delete(lettura);
     }
 
-    public Lettura get(long id) {
+    public Lettura get(Long id) {
         return letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
 
     }
 
-    public Lettura update(long id, LetturaDTO body) {
+    public Lettura update(Long id, LetturaDTO body) {
         Lettura lettura = letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
         lettura.setDataLettura(LocalDate.parse(body.dataLettura()));
         lettura.setTipoContatore(TipoContatore.valueOf(body.tipoContatore()));

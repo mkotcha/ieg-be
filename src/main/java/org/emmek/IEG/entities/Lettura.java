@@ -24,7 +24,7 @@ public class Lettura {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "letture_id_seq")
     @SequenceGenerator(name = "letture_id_seq", sequenceName = "letture_id_seq", allocationSize = 1)
-    private long id;
+    private Long id;
 
     @Column(name = "is_utile")
     private boolean isUtile;

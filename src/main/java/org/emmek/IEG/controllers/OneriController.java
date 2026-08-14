@@ -31,21 +31,21 @@ public class OneriController {
     }
 
     @GetMapping("/{id}")
-    public Oneri getOneri(@PathVariable long id) {
+    public Oneri getOneri(@PathVariable Long id) {
         return oneriService.findById(id);
     }
 
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public void delete(@PathVariable long id) {
+    public void delete(@PathVariable Long id) {
         oneriService.delete(id);
     }
 
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public Oneri update(@PathVariable long id, @RequestBody @Validated OneriDTO body, BindingResult validation) {
+    public Oneri update(@PathVariable Long id, @RequestBody @Validated OneriDTO body, BindingResult validation) {
         return oneriService.update(id, body);
     }
 

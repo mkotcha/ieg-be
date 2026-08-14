@@ -1,4 +1,4 @@
-package org.emmek.IEG.helpers.excel;
+package org.emmek.IEG.model.excel;
 
 import com.poiji.annotation.ExcelCellName;
 import lombok.*;
@@ -11,7 +11,7 @@ import lombok.*;
 public class LetturaModel {
 
     @ExcelCellName("id")
-    private long id;
+    private Long id;
 
     @ExcelCellName("POD")
     private String pod;

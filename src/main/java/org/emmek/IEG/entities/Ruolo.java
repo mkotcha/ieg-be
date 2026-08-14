@@ -19,7 +19,7 @@ public class Ruolo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonIgnore
-    private long id;
+    private Long id;
 
     private String ruolo;
 

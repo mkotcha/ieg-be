@@ -15,7 +15,7 @@ import lombok.Setter;
 public class PunPod {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "fornitura_pod", nullable = false)

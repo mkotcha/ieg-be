@@ -19,11 +19,11 @@ public class DispacciamentoService {
         return dispacciamentoRepository.findAll();
     }
 
-    public Dispacciamento findById(long id) {
+    public Dispacciamento findById(Long id) {
         return dispacciamentoRepository.findById(id).orElseThrow(() -> new NotFoundException("Dispacciamento non trovato"));
     }
 
-    public void delete(long id) {
+    public void delete(Long id) {
         Dispacciamento dispacciamento = dispacciamentoRepository.findById(id).orElseThrow(() -> new NotFoundException("Dispacciamento non trovato"));
         dispacciamentoRepository.delete(dispacciamento);
     }
@@ -33,16 +33,20 @@ public class DispacciamentoService {
         dispacciamento.setCapacita(body.capacita());
         dispacciamento.setCostoAm(body.costoAm());
         dispacciamento.setDis(body.dis());
+        dispacciamento.setSbilanciamento(body.sbilanciamento());
+        dispacciamento.setMese(body.mese());
         dispacciamento.setAnno(body.anno());
 
         return dispacciamentoRepository.save(dispacciamento);
     }
 
-    public Dispacciamento update(long id, DispacciamentoDTO body) {
+    public Dispacciamento update(Long id, DispacciamentoDTO body) {
         Dispacciamento dispacciamento = dispacciamentoRepository.findById(id).orElseThrow(() -> new NotFoundException("Dispacciamento non trovato"));
         dispacciamento.setCapacita(body.capacita());
         dispacciamento.setCostoAm(body.costoAm());
         dispacciamento.setDis(body.dis());
+        dispacciamento.setSbilanciamento(body.sbilanciamento());
+        dispacciamento.setMese(body.mese());
         dispacciamento.setAnno(body.anno());
 
         return dispacciamentoRepository.save(dispacciamento);

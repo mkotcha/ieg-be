@@ -20,7 +20,7 @@ import java.util.List;
 public class Offerta {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(name = "nome", nullable = false)
     private String nome;
