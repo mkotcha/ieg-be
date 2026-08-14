@@ -19,7 +19,7 @@ public class FatturaSingola {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
-    private long id;
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "fattura_id", nullable = false)

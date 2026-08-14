@@ -37,7 +37,7 @@ public class ClienteController {
 
 
     @GetMapping("/{id}/fattura")
-    public Fattura setFattura(@PathVariable long id,
+    public Fattura setFattura(@PathVariable Long id,
                               @RequestParam(required = false) Integer mese,
                               @RequestParam(required = false) Integer anno) throws IOException {
         if (mese == null) {

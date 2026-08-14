@@ -3,7 +3,7 @@ package org.emmek.IEG.configs;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import lombok.extern.slf4j.Slf4j;
-import org.emmek.IEG.helpers.xml.FlussoMisure;
+import org.emmek.IEG.model.xml.FlussoMisure;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,5 +33,5 @@ public class JaxbParser {
             return null;
         }
     }
-    
+
 }

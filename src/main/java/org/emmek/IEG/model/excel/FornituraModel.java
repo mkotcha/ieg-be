@@ -1,4 +1,4 @@
-package org.emmek.IEG.helpers.excel;
+package org.emmek.IEG.model.excel;
 
 import com.poiji.annotation.ExcelCellName;
 import lombok.*;
@@ -14,7 +14,7 @@ public class FornituraModel {
     private String id;
 
     @ExcelCellName("id_cliente")
-    private long idCliente;
+    private Long idCliente;
 
     @ExcelCellName("indirizzo fornitura")
     private String indirizzoFornitura;

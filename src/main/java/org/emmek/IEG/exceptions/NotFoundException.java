@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public class NotFoundException extends RuntimeException {
-    public NotFoundException(long id) {
+    public NotFoundException(Long id) {
         super("Elemento con id " + id + " non trovato!");
     }
 

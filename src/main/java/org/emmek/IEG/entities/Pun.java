@@ -17,7 +17,7 @@ import lombok.Setter;
 public class Pun {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(name = "f1", nullable = false)
     private Double f1;

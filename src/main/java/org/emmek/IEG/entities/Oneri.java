@@ -16,7 +16,7 @@ import org.emmek.IEG.enums.BTA;
 public class Oneri {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
     @Column(name = "tipo", nullable = false)
     @Enumerated(EnumType.STRING)

@@ -41,7 +41,7 @@ public class OneriService {
         return oneriRepository.save(oneri);
     }
 
-    public Oneri update(long id, OneriDTO body) {
+    public Oneri update(Long id, OneriDTO body) {
         Oneri oneri = oneriRepository.findById(id).orElseThrow(() -> new NotFoundException("Voce non trovata"));
         oneri.setTipo(BTA.valueOf(body.tipo()));
         oneri.setQeTud(body.qeTud());
@@ -63,12 +63,12 @@ public class OneriService {
 
     }
 
-    public void delete(long id) {
+    public void delete(Long id) {
         Oneri oneri = oneriRepository.findById(id).orElseThrow(() -> new NotFoundException("Voce non trovata"));
         oneriRepository.delete(oneri);
     }
 
-    public Oneri findById(long id) {
+    public Oneri findById(Long id) {
         return oneriRepository.findById(id).orElseThrow(() -> new NotFoundException("Voce non trovata"));
     }
 

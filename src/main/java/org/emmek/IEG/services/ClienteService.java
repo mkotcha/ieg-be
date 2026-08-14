@@ -31,7 +31,7 @@ public class ClienteService {
         clienteRepository.save(cliente);
     }
 
-    public Cliente findById(long idCliente) {
+    public Cliente findById(Long idCliente) {
         return clienteRepository.findById(idCliente).orElseThrow(() -> new RuntimeException("Cliente con id: " + idCliente + " non trovato"));
     }
 
@@ -39,7 +39,7 @@ public class ClienteService {
         return clienteRepository.findById(Long.parseLong(idCliente)).orElseThrow(() -> new RuntimeException("Cliente con id: " + idCliente + " non trovato"));
     }
 
-    public Fattura newFattura(long id, Integer mese, Integer anno) throws IOException {
+    public Fattura newFattura(Long id, Integer mese, Integer anno) throws IOException {
         Cliente cliente = clienteRepository.findById(id).orElseThrow(() -> new RuntimeException("Cliente con id: " + id + " non trovato"));
         return fatturaService.newfattura(cliente, mese, anno);
     }

@@ -61,18 +61,18 @@ public class LettureController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public void delete(@PathVariable long id) {
+    public void delete(@PathVariable Long id) {
         letturaService.delete(id);
     }
 
     @GetMapping("/{id}")
-    public Lettura get(@PathVariable long id) {
+    public Lettura get(@PathVariable Long id) {
         return letturaService.get(id);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public Lettura update(@PathVariable long id, @RequestBody @Validated LetturaDTO body, BindingResult validation) {
+    public Lettura update(@PathVariable Long id, @RequestBody @Validated LetturaDTO body, BindingResult validation) {
         if (validation.hasErrors()) {
             throw new BadRequestException(validation.getAllErrors());
         } else {

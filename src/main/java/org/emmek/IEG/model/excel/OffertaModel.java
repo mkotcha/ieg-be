@@ -1,4 +1,4 @@
-package org.emmek.IEG.helpers.excel;
+package org.emmek.IEG.model.excel;
 
 
 import com.poiji.annotation.ExcelCellName;
@@ -11,7 +11,7 @@ import lombok.*;
 @ToString
 public class OffertaModel {
     @ExcelCellName("id")
-    private long id;
+    private Long id;
 
     @ExcelCellName("tipo")
     private String nome;
