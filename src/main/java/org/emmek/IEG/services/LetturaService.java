@@ -166,7 +166,7 @@ public class LetturaService {
                     lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
                     log.info("inserisco -------> lettura pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
                 } else {
-                    log.info("sovrascrivo lettura per il pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
+//                    log.info("sovrascrivo lettura per il pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
                 }
 
                 switch (datiPod.datiPdp.trattamento) {

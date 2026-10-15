@@ -75,8 +75,8 @@ public class Runner implements CommandLineRunner {
         createRoleIfNotExist("ADMIN");
         createRoleIfNotExist("USER");
         crateAdminIfNotExist(username);
-//        importClienti();
-//        importForniture();
+        importClienti();
+        importForniture();
 //        importOfferte();
 //        importLetture();
 //        importOneri();
