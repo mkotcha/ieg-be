@@ -27,7 +27,7 @@ public class FatturaSingola {
     private Fattura fattura;
 
     @ManyToOne
-    @JoinColumn(name = "fornitura_id", nullable = false)
+    @JoinColumn(name = "fornitura_pod", nullable = false)
     private Fornitura fornitura;
 
     @Column(name = "consumo_f1")
@@ -56,6 +56,10 @@ public class FatturaSingola {
 
     @Column(name = "consumo_tot_reattivo")
     private Double consumoTotR;
+
+    // consumo totale calcolato solo come ultima lettura - prima lettura, per verifica di consumoTot
+    @Column(name = "consumo_tot_verifica")
+    private Double consumoTotVerifica;
 
     @Column(name = "perditeF1")
     private Double perditeF1;
@@ -87,6 +91,55 @@ public class FatturaSingola {
     @Column(name = "totale_imponibile")
     private Double totaleImponibile;
 
+    // prezzi energia applicati (PUN o prezzo fisso dell'offerta) e potenza usata per le quote potenza
+    @Column(name = "prezzo_f1")
+    private Double prezzoF1;
+
+    @Column(name = "prezzo_f2")
+    private Double prezzoF2;
+
+    @Column(name = "prezzo_f3")
+    private Double prezzoF3;
+
+    // potenza impegnata se sotto i 16 kW, altrimenti il picco prelevato
+    @Column(name = "potenza_oneri")
+    private Double potenzaOneri;
+
+    // valori dello scontrino dell'energia (pagina 2)
+    @Column(name = "spesa_vendita")
+    private Double spesaVendita;
+
+    @Column(name = "spesa_rete")
+    private Double spesaRete;
+
+    @Column(name = "spesa_fissa_vendita")
+    private Double spesaFissaVendita;
+
+    @Column(name = "spesa_fissa_rete")
+    private Double spesaFissaRete;
+
+    @Column(name = "spesa_potenza_rete")
+    private Double spesaPotenzaRete;
+
+    // €/kWh
+    @Column(name = "spesa_media")
+    private Double spesaMedia;
+
+    // €/kWh
+    @Column(name = "spesa_vendita_media")
+    private Double spesaVenditaMedia;
+
+    // €/kWh
+    @Column(name = "spesa_rete_media")
+    private Double spesaReteMedia;
+
+    // €/kW/mese
+    @Column(name = "spesa_potenza_rete_media")
+    private Double spesaPotenzaReteMedia;
+
+    @Column(name = "totale_partite")
+    private Double totalePartite;
+
     @ManyToOne
     @JoinColumn(name = "dispacciamento_id", nullable = false)
     private Dispacciamento dispacciamento;
@@ -97,6 +150,18 @@ public class FatturaSingola {
 
     @ManyToMany(mappedBy = "fattureSingole")
     private List<Lettura> letture;
+
+    @OneToMany(mappedBy = "fatturaSingola", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("ordine")
+    private List<VoceFatturaSingola> voci = new java.util.ArrayList<>();
+
+    @ManyToOne
+    @JoinColumn(name = "lettura_iniziale_id")
+    private Lettura letturaIniziale;
+
+    @ManyToOne
+    @JoinColumn(name = "lettura_finale_id")
+    private Lettura letturaFinale;
 
 
     public void setConsumo() {

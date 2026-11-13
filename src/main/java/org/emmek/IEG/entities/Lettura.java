@@ -93,7 +93,7 @@ public class Lettura {
     @JoinTable(
             name = "letture_fatture_singole",
             joinColumns = @JoinColumn(name = "lettura_id"),
-            inverseJoinColumns = @JoinColumn(name = "fattura_id")
+            inverseJoinColumns = @JoinColumn(name = "fattura_singola_id")
     )
     @JsonIgnore
     private List<FatturaSingola> fattureSingole;

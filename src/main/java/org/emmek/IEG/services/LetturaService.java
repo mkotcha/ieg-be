@@ -12,6 +12,7 @@ import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.model.xml.DatiPod;
 import org.emmek.IEG.model.xml.FlussoMisure;
 import org.emmek.IEG.payloads.LetturaDTO;
+import org.emmek.IEG.repositories.FatturaSingolaRepository;
 import org.emmek.IEG.repositories.LetturaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +37,14 @@ import java.util.UUID;
 @Slf4j
 public class LetturaService {
 
+    // perdite di rete in percentuale sul consumo
+    private static final double PERCENTUALE_PERDITE = 10;
+
     @Autowired
     private LetturaRepository letturaRepository;
+
+    @Autowired
+    private FatturaSingolaRepository fatturaSingolaRepository;
 
     @Autowired
     private FornituraService fornituraService;
@@ -316,17 +324,12 @@ public class LetturaService {
     public List<Lettura> getLetture(Fornitura fornitura, int mese, int anno) {
         LocalDate from;
         LocalDate to;
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        if (mese == 1) {
-            from = LocalDate.parse((anno - 1) + "-12-15", formatter);
-        } else {
-            from = LocalDate.parse(anno + "-" + String.format("%02d", mese - 1) + "-15", formatter);
-        }
-        if (mese == 12) {
-            to = LocalDate.parse((anno + 1) + "-01-15", formatter);
-        } else {
-            to = LocalDate.parse(anno + "-" + String.format("%02d", mese + 1) + "-15", formatter);
-        }
+        LocalDate primoDelMese = LocalDate.of(anno, mese, 1);
+        LocalDate mesePrecedente = primoDelMese.minusMonths(1);
+        from = fatturaSingolaRepository
+                .findDataUltimaLetturaFatturata(fornitura, mesePrecedente.getMonthValue(), mesePrecedente.getYear())
+                .orElse(primoDelMese);
+        to = primoDelMese.withDayOfMonth(primoDelMese.lengthOfMonth());
         List<Lettura> letture = letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
         if (letture.size() < 2)
             throw new RuntimeException(fornitura.getId() + " non ci sono abbastanza letture per calcolare il consumo per il mese " + mese + " dell'anno " + anno);
@@ -353,22 +356,37 @@ public class LetturaService {
     public Map<String, Double> getConsumi(List<Lettura> letture) {
         Map<String, Double> consumi = new HashMap<>();
         if (letture.size() < 2) throw new RuntimeException("Non ci sono abbastanza letture per calcolare il consumo");
-        if (letture.size() > 2) throw new RuntimeException("Troppe Letture per calcolare il consumo");
-        Lettura letturaLast = letture.get(0);
-        Lettura letturaOld = letture.get(1);
-        consumi.put("EaF1", letturaLast.getEaF1() - letturaOld.getEaF1());
-        consumi.put("EaF2", letturaLast.getEaF2() - letturaOld.getEaF2());
-        consumi.put("EaF3", letturaLast.getEaF3() - letturaOld.getEaF3());
-        consumi.put("ErF1", letturaLast.getErF1() - letturaOld.getErF1());
-        consumi.put("ErF2", letturaLast.getErF2() - letturaOld.getErF2());
-        consumi.put("ErF3", letturaLast.getErF3() - letturaOld.getErF3());
-        consumi.put("perditeF1", consumi.get("EaF1") / 100 * 10.4);
-        consumi.put("perditeF2", consumi.get("EaF2") / 100 * 10.4);
-        consumi.put("perditeF3", consumi.get("EaF3") / 100 * 10.4);
+        List<Lettura> ordinate = letture.stream()
+                .sorted(Comparator.comparing(Lettura::getDataLettura))
+                .toList();
+        double eaF1 = 0, eaF2 = 0, eaF3 = 0, erF1 = 0, erF2 = 0, erF3 = 0;
+        double potMax = 0;
+        // somma dei consumi tra letture consecutive (senza cambi contatore equivale a ultima - prima).
+        // Le letture vanno moltiplicate per le costanti del contatore: ka attiva, kr reattiva, kp potenza.
+        // TODO: gestire le letture di CAMBIO contatore (sommare i consumi fino al cambio e ripartire da zero)
+        for (int i = 1; i < ordinate.size(); i++) {
+            Lettura prec = ordinate.get(i - 1);
+            Lettura curr = ordinate.get(i);
+            eaF1 += nvl(curr.getEaF1()) * ka(curr) - nvl(prec.getEaF1()) * ka(prec);
+            eaF2 += nvl(curr.getEaF2()) * ka(curr) - nvl(prec.getEaF2()) * ka(prec);
+            eaF3 += nvl(curr.getEaF3()) * ka(curr) - nvl(prec.getEaF3()) * ka(prec);
+            erF1 += nvl(curr.getErF1()) * kr(curr) - nvl(prec.getErF1()) * kr(prec);
+            erF2 += nvl(curr.getErF2()) * kr(curr) - nvl(prec.getErF2()) * kr(prec);
+            erF3 += nvl(curr.getErF3()) * kr(curr) - nvl(prec.getErF3()) * kr(prec);
+            potMax = Math.max(potMax, kp(curr) * Math.max(nvl(curr.getPotF1()), Math.max(nvl(curr.getPotF2()), nvl(curr.getPotF3()))));
+        }
+        consumi.put("EaF1", eaF1);
+        consumi.put("EaF2", eaF2);
+        consumi.put("EaF3", eaF3);
+        consumi.put("ErF1", erF1);
+        consumi.put("ErF2", erF2);
+        consumi.put("ErF3", erF3);
+        consumi.put("perditeF1", consumi.get("EaF1") * PERCENTUALE_PERDITE / 100);
+        consumi.put("perditeF2", consumi.get("EaF2") * PERCENTUALE_PERDITE / 100);
+        consumi.put("perditeF3", consumi.get("EaF3") * PERCENTUALE_PERDITE / 100);
         Double consumoTot = consumi.get("EaF1") + consumi.get("EaF2") + consumi.get("EaF3");
         Double consumoTotP = consumoTot + consumi.get("perditeF1") + consumi.get("perditeF2") + consumi.get("perditeF3");
         Double consumoTotR = consumi.get("ErF1") + consumi.get("ErF2") + consumi.get("ErF3");
-        Double potMax = Math.max(letturaLast.getPotF1(), Math.max(letturaLast.getPotF2(), letturaLast.getPotF3()));
         consumi.put("consumoTot", consumoTot);
         consumi.put("consumoTotP", consumoTotP);
         consumi.put("consumoTotR", consumoTotR);
@@ -378,6 +396,33 @@ public class LetturaService {
             consumi.put("percentualeReattiva", percentualeReattiva);
         }
         return consumi;
+    }
+
+    /**
+     * Consumo totale di energia attiva calcolato solo tra la prima e l'ultima lettura,
+     * senza considerare le letture intermedie: serve per verificare il risultato di getConsumi.
+     */
+    public Double getConsumoTotPrimaUltima(Lettura prima, Lettura ultima) {
+        return (nvl(ultima.getEaF1()) * ka(ultima) - nvl(prima.getEaF1()) * ka(prima))
+                + (nvl(ultima.getEaF2()) * ka(ultima) - nvl(prima.getEaF2()) * ka(prima))
+                + (nvl(ultima.getEaF3()) * ka(ultima) - nvl(prima.getEaF3()) * ka(prima));
+    }
+
+    // costanti del contatore: se mancano valgono 1
+    private static double ka(Lettura l) {
+        return l.getKa() != null ? l.getKa() : 1;
+    }
+
+    private static double kr(Lettura l) {
+        return l.getKr() != null ? l.getKr() : 1;
+    }
+
+    private static double kp(Lettura l) {
+        return l.getKp() != null ? l.getKp() : 1;
+    }
+
+    private static double nvl(Double valore) {
+        return valore != null ? valore : 0;
     }
 
     public Map<String, Double> getConsumi(Fornitura fornitura, int mese) {

@@ -74,4 +74,12 @@ public class Offerta {
     @OneToMany(mappedBy = "offerta")
     @JsonIgnore
     private List<Fornitura> forniture;
+
+    /**
+     * Spread da applicare in fattura: vale solo se has_spread è attivo, altrimenti 0.
+     */
+    @JsonIgnore
+    public double getSpreadEffettivo() {
+        return hasSpread && spread != null ? spread : 0;
+    }
 }

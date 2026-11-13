@@ -41,11 +41,16 @@ public class FatturaService {
     @Autowired
     private PunService punService;
 
+    @Autowired
+    private CalcoloFatturaService calcoloFatturaService;
+
 
     public Fattura newfattura(Cliente cliente, Integer mese, Integer anno) throws IOException {
-        String numeroFattura = "AUEE" + anno +
-                String.format("%02d", mese) +
-                String.format("%03d", cliente.getId()) + "00";
+        // numero come nelle fatture di esempio: AUEE + anno/mese di emissione (mese successivo al consumo) + id cliente
+        LocalDate meseEmissione = LocalDate.of(anno, mese, 1).plusMonths(1);
+        String numeroFattura = "AUEE" + meseEmissione.getYear() +
+                String.format("%02d", meseEmissione.getMonthValue()) +
+                String.format("%03d", cliente.getId());
         Fattura fattura;
         if (fatturaRepository.existsByNumeroFattura(numeroFattura)) {
             log.debug("Fattura " + numeroFattura + " già presente... Sovrascrivo");
@@ -73,6 +78,9 @@ public class FatturaService {
             fatturaSingola.setOneri(oneriService.getOneri(fornitura, mese, anno));
             fatturaSingola.setDispacciamento(dispacciamentoService.findByTrimestreAndAnno(trimestre, anno));
             fatturaSingola.setLetture(letturaService.getLetture(fornitura, mese, anno));
+            // getLetture restituisce le letture ordinate per data decrescente
+            fatturaSingola.setLetturaFinale(fatturaSingola.getLetture().get(0));
+            fatturaSingola.setLetturaIniziale(fatturaSingola.getLetture().get(fatturaSingola.getLetture().size() - 1));
             Map<String, Double> consumi = letturaService.getConsumi(fatturaSingola.getLetture());
             fatturaSingola.setConsumoF1(consumi.get("EaF1"));
             fatturaSingola.setConsumoF2(consumi.get("EaF2"));
@@ -85,43 +93,16 @@ public class FatturaService {
             fatturaSingola.setConsumoF3r(consumi.get("ErF3"));
             fatturaSingola.setConsumoTot(consumi.get("consumoTot"));
             fatturaSingola.setConsumoTotP(consumi.get("consumoTotP"));
+            fatturaSingola.setConsumoTotR(consumi.get("consumoTotR"));
+            fatturaSingola.setConsumoTotVerifica(letturaService.getConsumoTotPrimaUltima(
+                    fatturaSingola.getLetturaIniziale(), fatturaSingola.getLetturaFinale()));
+            if (Math.abs(fatturaSingola.getConsumoTotVerifica() - fatturaSingola.getConsumoTot()) > 0.001)
+                log.warn("Fornitura {}: consumoTot {} diverso da consumo prima/ultima lettura {}", fornitura.getId(),
+                        fatturaSingola.getConsumoTot(), fatturaSingola.getConsumoTotVerifica());
             fatturaSingola.setPotenzaPrelevata(consumi.get("potMax"));
-            fatturaSingola.setTotaleImposte(consumi.get("consumoTot") * 0.0125);
-            Double totaleMateria;
-            Double parzialeMateria;
-            Pun pun = punService.getByMeseAndAnno(mese, anno);
-            Dispacciamento dispacciamento = fatturaSingola.getDispacciamento();
-            parzialeMateria = 0 +
-                    fatturaSingola.getConsumoF1() * pun.getF1() +
-                    fatturaSingola.getConsumoF2() * pun.getF2() +
-                    fatturaSingola.getConsumoF3() * pun.getF3() +
-                    fatturaSingola.getPerditeF1() * pun.getF1() +
-                    fatturaSingola.getPerditeF2() * pun.getF2() +
-                    fatturaSingola.getPerditeF3() * pun.getF3() +
-                    fatturaSingola.getConsumoTotP() * fatturaSingola.getFornitura().getOfferta().getSpread();
-            totaleMateria = parzialeMateria +
-                    dispacciamento.getCostoAm() +
-                    (dispacciamento.getDis() * fatturaSingola.getConsumoTotP()) +
-                    (dispacciamento.getCapacita() * fatturaSingola.getConsumoTotP());
-            fatturaSingola.setTotaleMateria(totaleMateria);
-            Oneri oneri = fatturaSingola.getOneri();
-            Double totaleTrasporto = 0 +
-                    oneri.getQfTud() +
-                    oneri.getQfMis() +
-                    oneri.getQpTdm() * fatturaSingola.getFornitura().getPotenzaImpegnata() +
-                    oneri.getQeTud() * fatturaSingola.getConsumoTot() +
-                    oneri.getQeUc3() * fatturaSingola.getConsumoTot();
-            fatturaSingola.setTotaleTrasporto(totaleTrasporto);
-            Double totaleOneri = 0 +
-                    oneri.getQfAsos() +
-                    oneri.getQfArim() +
-                    oneri.getQpAsos() * fatturaSingola.getFornitura().getPotenzaImpegnata() +
-                    oneri.getQpArim() * fatturaSingola.getFornitura().getPotenzaImpegnata() +
-                    oneri.getQeAsos() * fatturaSingola.getConsumoTot() +
-                    oneri.getQeArim() * fatturaSingola.getConsumoTot();
-            fatturaSingola.setTotaleOneri(totaleOneri);
-            fatturaSingola.setTotaleImponibile(totaleMateria + totaleTrasporto + totaleOneri + fatturaSingola.getTotaleImposte());
-            fatturaSingola.setTotaleIva(fatturaSingola.getTotaleImponibile() * fatturaSingola.getFornitura().getIva() / 100);
+            // tutte le voci del dettaglio, i totali e i valori dello scontrino
+            calcoloFatturaService.calcola(fatturaSingola, punService.getByMeseAndAnno(mese, anno));
+            fatturaSingolaRepository.save(fatturaSingola);
             fattura.addFatturaSingola(fatturaSingola);
         });
         fattura.setConsumoTot(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getConsumoTot).sum());
@@ -132,6 +113,9 @@ public class FatturaService {
         fattura.setTotaleImposte(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleImposte).sum());
         fattura.setTotaleImponibile(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleImponibile).sum());
         fattura.setTotaleIva(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleIva).sum());
+        fattura.setConsumoTotR(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getConsumoTotR).sum());
+        // salva i totali prima di generare excel/pdf, così restano anche se la generazione del file fallisce
+        fatturaRepository.save(fattura);
         excelService.createFattura(fattura);
         return fattura;
     }
