@@ -72,11 +72,11 @@ public class Runner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        createRoleIfNotExist("ADMIN");
-        createRoleIfNotExist("USER");
-        crateAdminIfNotExist(username);
-        importClienti();
-        importForniture();
+//        createRoleIfNotExist("ADMIN");
+//        createRoleIfNotExist("USER");
+//        crateAdminIfNotExist(username);
+//        importClienti();
+//        importForniture();
 //        importOfferte();
 //        importLetture();
 //        importOneri();
