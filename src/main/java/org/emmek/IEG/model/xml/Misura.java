@@ -39,6 +39,13 @@ public class Misura {
     public String erF2;
     @XmlElement(name = "ErF3")
     public String erF3;
+    // energia reattiva capacitiva (immessa)
+    @XmlElement(name = "ErcF1")
+    public String ercF1;
+    @XmlElement(name = "ErcF2")
+    public String ercF2;
+    @XmlElement(name = "ErcF3")
+    public String ercF3;
     @XmlElement(name = "PotF1")
     public String potF1;
     @XmlElement(name = "PotF2")

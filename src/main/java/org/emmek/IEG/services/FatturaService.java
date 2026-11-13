@@ -98,6 +98,10 @@ public class FatturaService {
             fatturaSingola.setConsumoTot(consumi.get("consumoTot"));
             fatturaSingola.setConsumoTotP(consumi.get("consumoTotP"));
             fatturaSingola.setConsumoTotR(consumi.get("consumoTotR"));
+            fatturaSingola.setConsumoF1rc(consumi.get("ErcF1"));
+            fatturaSingola.setConsumoF2rc(consumi.get("ErcF2"));
+            fatturaSingola.setConsumoF3rc(consumi.get("ErcF3"));
+            fatturaSingola.setConsumoTotRc(consumi.get("ErcF1") + consumi.get("ErcF2") + consumi.get("ErcF3"));
             fatturaSingola.setConsumoTotVerifica(letturaService.getConsumoTotPrimaUltima(
                     fatturaSingola.getLetturaIniziale(), fatturaSingola.getLetturaFinale()));
             if (Math.abs(fatturaSingola.getConsumoTotVerifica() - fatturaSingola.getConsumoTot()) > 0.001)

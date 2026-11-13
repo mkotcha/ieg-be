@@ -57,6 +57,19 @@ public class FatturaSingola {
     @Column(name = "consumo_tot_reattivo")
     private Double consumoTotR;
 
+    // energia reattiva capacitiva (immessa) per fascia, kVArh
+    @Column(name = "consumo_f1rc")
+    private Double consumoF1rc;
+
+    @Column(name = "consumo_f2rc")
+    private Double consumoF2rc;
+
+    @Column(name = "consumo_f3rc")
+    private Double consumoF3rc;
+
+    @Column(name = "consumo_tot_reattivo_immesso")
+    private Double consumoTotRc;
+
     // consumo totale calcolato solo come ultima lettura - prima lettura, per verifica di consumoTot
     @Column(name = "consumo_tot_verifica")
     private Double consumoTotVerifica;

@@ -200,6 +200,9 @@ public class LetturaService {
                 lettura.setErF1(Double.parseDouble(datiPod.misura.erF1.replaceAll(",", ".")));
                 lettura.setErF2(Double.parseDouble(datiPod.misura.erF2.replaceAll(",", ".")));
                 lettura.setErF3(Double.parseDouble(datiPod.misura.erF3.replaceAll(",", ".")));
+                lettura.setErcF1(parseDecimale(datiPod.misura.ercF1));
+                lettura.setErcF2(parseDecimale(datiPod.misura.ercF2));
+                lettura.setErcF3(parseDecimale(datiPod.misura.ercF3));
                 lettura.setPotF1(Double.parseDouble(datiPod.misura.potF1.replaceAll(",", ".")));
                 lettura.setPotF2(Double.parseDouble(datiPod.misura.potF2.replaceAll(",", ".")));
                 lettura.setPotF3(Double.parseDouble(datiPod.misura.potF3.replaceAll(",", ".")));
@@ -359,7 +362,7 @@ public class LetturaService {
         List<Lettura> ordinate = letture.stream()
                 .sorted(Comparator.comparing(Lettura::getDataLettura))
                 .toList();
-        double eaF1 = 0, eaF2 = 0, eaF3 = 0, erF1 = 0, erF2 = 0, erF3 = 0;
+        double eaF1 = 0, eaF2 = 0, eaF3 = 0, erF1 = 0, erF2 = 0, erF3 = 0, ercF1 = 0, ercF2 = 0, ercF3 = 0;
         double potMax = 0;
         // somma dei consumi tra letture consecutive (senza cambi contatore equivale a ultima - prima).
         // Le letture vanno moltiplicate per le costanti del contatore: ka attiva, kr reattiva, kp potenza.
@@ -373,6 +376,10 @@ public class LetturaService {
             erF1 += nvl(curr.getErF1()) * kr(curr) - nvl(prec.getErF1()) * kr(prec);
             erF2 += nvl(curr.getErF2()) * kr(curr) - nvl(prec.getErF2()) * kr(prec);
             erF3 += nvl(curr.getErF3()) * kr(curr) - nvl(prec.getErF3()) * kr(prec);
+            // reattiva immessa: solo tra letture che hanno il dato (le letture importate prima non lo hanno)
+            ercF1 += delta(curr.getErcF1(), prec.getErcF1(), kr(curr), kr(prec));
+            ercF2 += delta(curr.getErcF2(), prec.getErcF2(), kr(curr), kr(prec));
+            ercF3 += delta(curr.getErcF3(), prec.getErcF3(), kr(curr), kr(prec));
             potMax = Math.max(potMax, kp(curr) * Math.max(nvl(curr.getPotF1()), Math.max(nvl(curr.getPotF2()), nvl(curr.getPotF3()))));
         }
         consumi.put("EaF1", eaF1);
@@ -381,6 +388,9 @@ public class LetturaService {
         consumi.put("ErF1", erF1);
         consumi.put("ErF2", erF2);
         consumi.put("ErF3", erF3);
+        consumi.put("ErcF1", ercF1);
+        consumi.put("ErcF2", ercF2);
+        consumi.put("ErcF3", ercF3);
         consumi.put("perditeF1", consumi.get("EaF1") * PERCENTUALE_PERDITE / 100);
         consumi.put("perditeF2", consumi.get("EaF2") * PERCENTUALE_PERDITE / 100);
         consumi.put("perditeF3", consumi.get("EaF3") * PERCENTUALE_PERDITE / 100);
@@ -406,6 +416,15 @@ public class LetturaService {
         return (nvl(ultima.getEaF1()) * ka(ultima) - nvl(prima.getEaF1()) * ka(prima))
                 + (nvl(ultima.getEaF2()) * ka(ultima) - nvl(prima.getEaF2()) * ka(prima))
                 + (nvl(ultima.getEaF3()) * ka(ultima) - nvl(prima.getEaF3()) * ka(prima));
+    }
+
+    private static double delta(Double corrente, Double precedente, double kCorrente, double kPrecedente) {
+        if (corrente == null || precedente == null) return 0;
+        return corrente * kCorrente - precedente * kPrecedente;
+    }
+
+    private static Double parseDecimale(String valore) {
+        return valore != null && !valore.isBlank() ? Double.parseDouble(valore.replaceAll(",", ".")) : null;
     }
 
     // costanti del contatore: se mancano valgono 1

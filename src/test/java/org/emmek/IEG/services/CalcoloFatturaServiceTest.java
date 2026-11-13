@@ -39,7 +39,7 @@ class CalcoloFatturaServiceTest {
         assertEquals(0.8874, fs.getSpesaPotenzaRete(), DELTA);
         // nell'esempio la media era calcolata da importi arrotondati a 4 decimali (8,5071 / 23,584)
         assertEquals(0.360715, fs.getSpesaMedia(), 0.00001);
-        assertEquals(33, fs.getVoci().size());
+        assertEquals(34, fs.getVoci().size());
     }
 
     @Test
@@ -56,6 +56,20 @@ class CalcoloFatturaServiceTest {
         assertEquals(6.4367, spesaEnergia, DELTA);
         assertEquals(spesaEnergia * 0.30, ocv.getImporto(), DELTA);
         assertEquals(1.0, ocv.getQuantita());
+    }
+
+    @Test
+    void reattivaImmessaFatturataTutta() {
+        FatturaSingola fs = fatturaDiEsempio();
+        fs.setConsumoTotRc(28.0); // come la fattura del fornitore di ottobre 2026
+        new CalcoloFatturaService().calcola(fs, punDiEsempio());
+
+        VoceFatturaSingola voce = fs.getVoci().stream().filter(v -> v.getCodice().equals("reattiva_immessa")).findFirst().orElseThrow();
+        assertEquals(0.01088, voce.getUnitario());
+        assertEquals(28.0, voce.getQuantita());
+        assertEquals(0.30464, voce.getImporto(), DELTA);
+        assertEquals(3.7292 + 0.30464, fs.getTotaleTrasporto(), DELTA);
+        assertEquals(1.1566 + 0.30464, fs.getSpesaRete(), DELTA);
     }
 
     @Test

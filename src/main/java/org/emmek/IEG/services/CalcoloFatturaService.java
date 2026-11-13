@@ -30,6 +30,8 @@ public class CalcoloFatturaService {
     // prezzi della reattiva: non sono in tabella oneri, valori presi dal template
     private static final double PREZZO_REATTIVA_33 = 0.01088;
     private static final double PREZZO_REATTIVA_75 = 0.01088;
+    // reattiva capacitiva immessa: fatturata tutta, come fa il fornitore
+    private static final double PREZZO_REATTIVA_IMMESSA = 0.01088;
     // addizionale erariale se non indicata in tabella oneri
     private static final double ACCISE_DEFAULT = 0.0125;
 
@@ -106,6 +108,7 @@ public class CalcoloFatturaService {
         v.add("trasmissione", "Trasmissione Energia", TRASPORTO, RETE, KWH, nvl(oneri.getTrasmissione()), consumo);
         v.add("reattiva_33", "Energia Reattiva immessa tra 33% e 75%", TRASPORTO, RETE, KVARH, PREZZO_REATTIVA_33, reattiva ? reattiva33(fs) : 0);
         v.add("reattiva_75", "Energia Reattiva immessa oltre 75%", TRASPORTO, RETE, KVARH, PREZZO_REATTIVA_75, reattiva ? reattiva75(fs) : 0);
+        v.add("reattiva_immessa", "Energia Reattiva Capacitiva Immessa", TRASPORTO, RETE, KVARH, PREZZO_REATTIVA_IMMESSA, nvl(fs.getConsumoTotRc()));
         v.add("qf_tud", "Quota Fissa - Distribuzione", TRASPORTO, FISSA_RETE, PDP, nvl(oneri.getQfTud()), 1);
         v.add("qf_mis", "Quota Fissa - Misura", TRASPORTO, FISSA_VENDITA, PDP, nvl(oneri.getQfMis()), 1);
         v.add("qf_uc6", "Quota Fissa - Oneri di Sistema UC6", TRASPORTO, FISSA_RETE, PDP, nvl(oneri.getQfUc6()), 1);

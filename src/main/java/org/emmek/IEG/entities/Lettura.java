@@ -67,6 +67,14 @@ public class Lettura {
     @Column(name = "er_f3")
     private Double erF3;
 
+    // energia reattiva capacitiva (immessa)
+    @Column(name = "erc_f1")
+    private Double ercF1;
+    @Column(name = "erc_f2")
+    private Double ercF2;
+    @Column(name = "erc_f3")
+    private Double ercF3;
+
     @Column(name = "pot_f1")
     private Double potF1;
     @Column(name = "pot_f2")
