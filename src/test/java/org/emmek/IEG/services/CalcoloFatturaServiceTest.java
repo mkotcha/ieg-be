@@ -59,17 +59,32 @@ class CalcoloFatturaServiceTest {
     }
 
     @Test
-    void reattivaImmessaFatturataTutta() {
+    void reattivaImmessaSoloF3PerBta6() {
         FatturaSingola fs = fatturaDiEsempio();
-        fs.setConsumoTotRc(28.0); // come la fattura del fornitore di ottobre 2026
+        // immessa di CALYPSO a ottobre 2026: il fornitore fattura solo la F3 (27,556 -> 28 kVArh)
+        fs.setConsumoF1rc(20.997);
+        fs.setConsumoF2rc(16.537);
+        fs.setConsumoF3rc(27.556);
+        fs.setConsumoTotRc(65.09);
         new CalcoloFatturaService().calcola(fs, punDiEsempio());
 
         VoceFatturaSingola voce = fs.getVoci().stream().filter(v -> v.getCodice().equals("reattiva_immessa")).findFirst().orElseThrow();
         assertEquals(0.01088, voce.getUnitario());
-        assertEquals(28.0, voce.getQuantita());
-        assertEquals(0.30464, voce.getImporto(), DELTA);
-        assertEquals(3.7292 + 0.30464, fs.getTotaleTrasporto(), DELTA);
-        assertEquals(1.1566 + 0.30464, fs.getSpesaRete(), DELTA);
+        assertEquals(27.556, voce.getQuantita());
+        assertEquals(0.2998, voce.getImporto(), DELTA);
+        assertEquals(3.7292 + 0.2998, fs.getTotaleTrasporto(), DELTA);
+        assertEquals(1.1566 + 0.2998, fs.getSpesaRete(), DELTA);
+    }
+
+    @Test
+    void reattivaImmessaNonFatturataSeNonBta6() {
+        FatturaSingola fs = fatturaDiEsempio();
+        fs.getFornitura().setBta(BTA.BTA3);
+        fs.setConsumoF3rc(27.556);
+        new CalcoloFatturaService().calcola(fs, punDiEsempio());
+
+        VoceFatturaSingola voce = fs.getVoci().stream().filter(v -> v.getCodice().equals("reattiva_immessa")).findFirst().orElseThrow();
+        assertEquals(0.0, voce.getImporto());
     }
 
     @Test
