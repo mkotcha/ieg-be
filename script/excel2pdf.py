@@ -12,7 +12,8 @@ if len(sys.argv) < 3:
 excel_file_path = os.path.join(parent_dir, sys.argv[1])
 pdf_file_path = os.path.join(parent_dir, sys.argv[2])
 
-o = win32com.client.Dispatch("Excel.Application")
+# nuova istanza dedicata: Dispatch si aggancerebbe a un Excel gia' aperto (e Quit lo chiuderebbe)
+o = win32com.client.DispatchEx("Excel.Application")
 o.Visible = False
 
 wb = o.Workbooks.Open(excel_file_path)

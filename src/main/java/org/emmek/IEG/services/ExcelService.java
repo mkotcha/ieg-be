@@ -67,48 +67,44 @@ public class ExcelService {
     }
 
     public void addPagina(String pagina, String fileName, String sheetName) {
-        String script;
-        if (pagina.equals("template/pagina_1.xlsx")) {
-            script = "script/copyPagina1.py";
-        } else {
-            script = "script/copyPagina2.py";
-        }
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder("python", script, pagina, fileName, sheetName);
-            processBuilder.redirectErrorStream(true); // Redirect error stream to stdout
-            Process process = processBuilder.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                log.debug(line);
-            }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                log.error("Python script execution failed with exit code: " + exitCode);
-            }
-        } catch (IOException | InterruptedException e) {
-            log.error("Error during Python script execution: " + e.getMessage());
-        }
+        String script = pagina.equals("template/pagina_1.xlsx") ? "script/copyPagina1.py" : "script/copyPagina2.py";
+        eseguiScript(script, pagina, fileName, sheetName);
     }
 
     public void save2Pdf(String fatturaFileName) {
         String pdf = fatturaFileName.substring(0, fatturaFileName.lastIndexOf(".")) + ".pdf";
         log.debug("Avviata creazione file pdf: " + pdf);
+        eseguiScript("script/excel2Pdf.py", fatturaFileName, pdf);
+    }
+
+    /**
+     * Esegue uno script python che pilota Excel. Se fallisce interrompe la generazione della fattura,
+     * invece di produrre un file incompleto.
+     */
+    private void eseguiScript(String script, String... args) {
+        List<String> comando = new java.util.ArrayList<>(List.of("python", script));
+        comando.addAll(List.of(args));
+        StringBuilder output = new StringBuilder();
+        int exitCode;
         try {
-            ProcessBuilder processBuilder = new ProcessBuilder("python", "script/excel2Pdf.py", fatturaFileName, pdf);
-            processBuilder.redirectErrorStream(true); // Redirect error stream to stdout
-            Process process = processBuilder.start();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                log.debug(line);
+            Process process = new ProcessBuilder(comando).redirectErrorStream(true).start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.debug(line);
+                    output.append(line).append('\n');
+                }
             }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                log.error("Python script execution failed with exit code: " + exitCode);
-            }
-        } catch (IOException | InterruptedException e) {
-            log.error("Error during Python script execution: " + e.getMessage());
+            exitCode = process.waitFor();
+        } catch (IOException e) {
+            throw new RuntimeException("Impossibile eseguire " + script + ": " + e.getMessage(), e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Esecuzione di " + script + " interrotta", e);
+        }
+        if (exitCode != 0) {
+            throw new RuntimeException("Script " + script + " fallito (exit code " + exitCode + ") con argomenti "
+                    + String.join(" | ", args) + "\n" + output);
         }
     }
 

@@ -52,7 +52,7 @@ public class DispacciamentoService {
         return dispacciamentoRepository.save(dispacciamento);
     }
 
-    public Dispacciamento findByTrimestreAndAnno(int mese, Integer anno) {
-        return dispacciamentoRepository.findByMeseAndAnno(mese, anno).orElseThrow(() -> new NotFoundException("Dispacciamento trimestre: " + mese + " - anno: " + anno + "non trovato"));
+    public Dispacciamento findByMeseAndAnno(int mese, Integer anno) {
+        return dispacciamentoRepository.findByMeseAndAnno(mese, anno).orElseThrow(() -> new NotFoundException("Dispacciamento mese: " + mese + " - anno: " + anno + " non trovato"));
     }
 }

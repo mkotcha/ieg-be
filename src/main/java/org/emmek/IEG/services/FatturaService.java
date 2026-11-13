@@ -67,7 +67,6 @@ public class FatturaService {
         } else {
             fattura = new Fattura();
         }
-        int trimestre = (mese - 1) / 3 + 1;
         List<Fornitura> forniture = cliente.getForniture();
         fattura.setMese(mese);
         fattura.setAnno(anno);
@@ -80,7 +79,8 @@ public class FatturaService {
             fatturaSingola.setFattura(fattura);
             fatturaSingola.setFornitura(fornitura);
             fatturaSingola.setOneri(oneriService.getOneri(fornitura, mese, anno));
-            fatturaSingola.setDispacciamento(dispacciamentoService.findByTrimestreAndAnno(trimestre, anno));
+            // il dispacciamento è mensile (gli oneri invece sono trimestrali)
+            fatturaSingola.setDispacciamento(dispacciamentoService.findByMeseAndAnno(mese, anno));
             fatturaSingola.setLetture(letturaService.getLetture(fornitura, mese, anno));
             // getLetture restituisce le letture ordinate per data decrescente
             fatturaSingola.setLetturaFinale(fatturaSingola.getLetture().get(0));
