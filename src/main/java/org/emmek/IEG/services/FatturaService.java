@@ -49,7 +49,19 @@ public class FatturaService {
     private AltraPartitaRepository altraPartitaRepository;
 
 
+    /**
+     * Calcola e salva la fattura del mese di consumo e ne genera xlsx e pdf.
+     */
     public Fattura newfattura(Cliente cliente, Integer mese, Integer anno) throws IOException {
+        Fattura fattura = calcolaFattura(cliente, mese, anno);
+        excelService.createFattura(fattura);
+        return fattura;
+    }
+
+    /**
+     * Calcola e salva la fattura del mese di consumo (fatture singole, voci e totali), senza generare i file.
+     */
+    public Fattura calcolaFattura(Cliente cliente, Integer mese, Integer anno) {
         // numero come nelle fatture di esempio: AUEE + anno/mese di emissione (mese successivo al consumo) + id cliente
         LocalDate meseEmissione = LocalDate.of(anno, mese, 1).plusMonths(1);
         String numeroFattura = "AUEE" + meseEmissione.getYear() +
@@ -128,7 +140,6 @@ public class FatturaService {
         fattura.setConsumoTotR(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getConsumoTotR).sum());
         // salva i totali prima di generare excel/pdf, così restano anche se la generazione del file fallisce
         fatturaRepository.save(fattura);
-        excelService.createFattura(fattura);
         return fattura;
     }
 

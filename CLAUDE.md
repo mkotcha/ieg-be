@@ -88,8 +88,9 @@ the consumption month):
 1. Invoice number `AUEE<yyyy><MM of issue month = consumption month + 1><client id, 3 digits>`; if it already exists
    the invoice is overwritten (its `FatturaSingola` rows are deleted first).
 2. One `FatturaSingola` per `Fornitura` of the client, with `Oneri` (by BTA/trimestre) and `Dispacciamento`.
-3. `LetturaService.getLetture`: readings from the `letturaFinale` date of the previous month's `FatturaSingola` (or
-   the 1st of the month) to the last day of the month. `getConsumi` computes consumption over all readings, multiplied
+3. `LetturaService.getLetture`: readings from the `letturaFinale` date of the previous month's `FatturaSingola` to the
+   last day of the month. Without a previous invoice the period starts at the switch date for new clients (switch in
+   the billed month), otherwise at the last day of the previous month (to include the month-end reading). `getConsumi` computes consumption over all readings, multiplied
    by the meter constants (`ka` active, `kr` reactive, `kp` power); losses are 10% per band. The first and last
    readings are stored on the `FatturaSingola` (`letturaIniziale`/`letturaFinale`); `consumoTotVerifica` (last − first)
    is a cross-check that logs a warning when it differs. TODO: meter replacement readings (`TipoLettura.CAMBIO`).
@@ -99,7 +100,17 @@ the consumption month):
    offerta's fixed F1–F3; spread only if `hasSpread` (`Offerta.getSpreadEffettivo`); OCV = `offerta.ocv` €/kWh on
    consumption + losses; power quotas on potenza impegnata if < 16 kW, otherwise on peak power; reactive penalties
    only for BTA6.
-5. `ExcelService.createFattura` writes `fatture/<anno>/<mese>/<numero> - <ragione sociale>.xlsx` and `.pdf`.
+5. `ExcelService.createFattura` writes `fatture/<anno>/<mese>/<numero> - <ragione sociale>.xlsx` and `.pdf`: each
+   page is filled with POI in a temp copy of its template (sheet renamed first, `preparaFattura`), then
+   `script/componiFattura.py` merges the sheets and exports the PDF (`componiFatture`, job list in JSON, one Excel
+   instance for all the jobs, restarted if it crashes). `FatturaService.calcolaFattura` computes and saves without
+   generating files.
+
+`POST /api/fatture/genera?mese=&anno=` (`GenerazioneFattureService`, ADMIN) generates the invoices of all active
+clients: invoices are computed, saved and their pages filled in parallel (`fatture.generazione.thread`, default 4;
+one transaction per client, an error doesn't stop the others), then all xlsx/pdf are composed sequentially by one
+`componiFattura.py` run with a single Excel instance (parallel Excel instances slow each other down and crash).
+Returns a per-client result (`EsitoFatturaDTO`).
 
 **Templates** (`template/pagina_1.xlsx` riepilogo, `pagina_2.xlsx` scontrino, `pagina_3.xlsx` dettaglio) contain **no
 formulas**: Java computes every value and `ExcelService` only writes into named cells. Detail lines are located by the

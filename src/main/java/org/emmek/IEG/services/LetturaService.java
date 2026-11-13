@@ -329,9 +329,15 @@ public class LetturaService {
         LocalDate to;
         LocalDate primoDelMese = LocalDate.of(anno, mese, 1);
         LocalDate mesePrecedente = primoDelMese.minusMonths(1);
+        // inizio periodo: lettura finale della fattura del mese precedente; se non c'è, la lettura di switch per
+        // i clienti nuovi (switch nel mese), altrimenti la lettura di fine mese precedente
         from = fatturaSingolaRepository
                 .findDataUltimaLetturaFatturata(fornitura, mesePrecedente.getMonthValue(), mesePrecedente.getYear())
-                .orElse(primoDelMese);
+                .orElseGet(() -> {
+                    LocalDate dataSwitch = fornitura.getDataSwitch();
+                    if (dataSwitch != null && !dataSwitch.isBefore(primoDelMese)) return dataSwitch;
+                    return primoDelMese.minusDays(1);
+                });
         to = primoDelMese.withDayOfMonth(primoDelMese.lengthOfMonth());
         List<Lettura> letture = letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
         if (letture.size() < 2)

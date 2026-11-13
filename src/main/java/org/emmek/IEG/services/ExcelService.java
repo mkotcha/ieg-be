@@ -1,9 +1,10 @@
 package org.emmek.IEG.services;
 
 import lombok.extern.slf4j.Slf4j;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.emmek.IEG.entities.*;
 import org.emmek.IEG.enums.SezioneFattura;
 import org.emmek.IEG.enums.TipoLettura;
@@ -14,14 +15,17 @@ import org.springframework.stereotype.Service;
 import java.io.*;
 import java.math.BigDecimal;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Genera la fattura excel/pdf a partire dai template in template/.
@@ -45,37 +49,13 @@ public class ExcelService {
     private static final int COL_IMPORTO = 11;      // L
     private static final int COL_IVA = 12;          // M
 
+    private static final String TEMPLATE_RIEPILOGO = "template/pagina_1.xlsx";
+    private static final String TEMPLATE_SCONTRINO = "template/pagina_2.xlsx";
+    private static final String TEMPLATE_DETTAGLIO = "template/pagina_3.xlsx";
+
     @Autowired
     FatturaRepository fatturaRepository;
 
-    public Workbook createExcelFile() {
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("sheet");
-        Row row = sheet.createRow(0);
-        Cell cell = row.createCell(0);
-        cell.setCellValue("Hello, World!");
-        sheet.autoSizeColumn(0);
-        return workbook;
-    }
-
-    public void saveWorkbookToFile(Workbook workbook, String filePath) throws IOException {
-        File parent = new File(filePath).getParentFile();
-        if (parent != null) Files.createDirectories(parent.toPath());
-        try (FileOutputStream fileOut = new FileOutputStream(filePath)) {
-            workbook.write(fileOut);
-        }
-    }
-
-    public void addPagina(String pagina, String fileName, String sheetName) {
-        String script = pagina.equals("template/pagina_1.xlsx") ? "script/copyPagina1.py" : "script/copyPagina2.py";
-        eseguiScript(script, pagina, fileName, sheetName);
-    }
-
-    public void save2Pdf(String fatturaFileName) {
-        String pdf = fatturaFileName.substring(0, fatturaFileName.lastIndexOf(".")) + ".pdf";
-        log.debug("Avviata creazione file pdf: " + pdf);
-        eseguiScript("script/excel2Pdf.py", fatturaFileName, pdf);
-    }
 
     /**
      * Esegue uno script python che pilota Excel. Se fallisce interrompe la generazione della fattura,
@@ -168,10 +148,10 @@ public class ExcelService {
     // ------------------------------------------------------------------
 
     /**
-     * Compila il dettaglio (pagina 3) e lo scontrino (pagina 2) di una fornitura.
-     * I due fogli devono essere già stati aggiunti al file.
+     * Compila il dettaglio (pagina 3) e lo scontrino (pagina 2) di una fornitura, ciascuno nel proprio workbook
+     * creato dal template con il foglio già rinominato.
      */
-    private void writeFornitura(String fileName, FatturaSingola fs) throws IOException {
+    private void writeFornitura(Workbook dettaglio, Workbook scontrino, FatturaSingola fs) {
         Fornitura fornitura = fs.getFornitura();
         Fattura fattura = fs.getFattura();
         Offerta offerta = fornitura.getOfferta();
@@ -179,133 +159,129 @@ public class ExcelService {
         Lettura letturaOld = fs.getLetturaIniziale();
         double kp = lettura.getKp() != null ? lettura.getKp() : 1;
 
-        try (Workbook workbook = WorkbookFactory.create(new FileInputStream(fileName))) {
-            // ---------------- pagina 3: dettaglio ----------------
-            String s = fornitura.getId() + " consumi";
-            writeCell(workbook, s, "codice_cliente", codiceCliente(fornitura.getCliente()));
-            writeCell(workbook, s, "pod", fornitura.getId());
-            writeCell(workbook, s, "potenza_disponibile", fornitura.getPotenzaDisponibile());
-            writeCell(workbook, s, "tipo_misuratore", capitalize(fornitura.getTipoContatore().name()));
-            writeCell(workbook, s, "potenza_impegnata", fs.getPotenzaOneri());
-            for (VoceFatturaSingola voce : fs.getVoci()) {
-                if (voce.getSezione() == SezioneFattura.ALTRE_PARTITE) continue; // riga unica, scritta sotto
-                String nome = "voce_" + voce.getCodice();
-                if (findCell(workbook, s, nome) == null) continue;
-                setValue(findCell(workbook, s, nome, COL_DESCRIZIONE), voce.getDescrizione());
-                setValue(findCell(workbook, s, nome, COL_DAL), voce.getDal());
-                setValue(findCell(workbook, s, nome, COL_AL), voce.getAl());
-                setValue(findCell(workbook, s, nome, COL_UNITA), voce.getUnita());
-                setValue(findCell(workbook, s, nome, COL_UNITARIO), voce.getUnitario());
-                setValue(findCell(workbook, s, nome, COL_QUANTITA), voce.getQuantita());
-                setValue(findCell(workbook, s, nome, COL_IMPORTO), voce.getImporto());
-                setValue(findCell(workbook, s, nome, COL_IVA), voce.getIva());
-            }
-            writeCell(workbook, s, "totale_materia", fs.getTotaleMateria());
-            writeCell(workbook, s, "totale_trasporto", fs.getTotaleTrasporto());
-            writeCell(workbook, s, "totale_oneri", fs.getTotaleOneri());
-            writeCell(workbook, s, "totale_accise", fs.getTotaleImposte());
-            writeCell(workbook, s, "altre_partite_1", altrePartite(fs));
-            writeCell(workbook, s, "totale_partite", fs.getTotalePartite());
-            writeCell(workbook, s, "aliquota_iva", fornitura.getIva() / 100);
-            writeCell(workbook, s, "imponibile", fs.getTotaleImponibile());
-            writeCell(workbook, s, "totale_iva", fs.getTotaleIva());
-
-            // ---------------- pagina 2: scontrino ----------------
-            s = fornitura.getId() + " letture";
-            double consumo = nvl(fs.getConsumoTot());
-            double spesaFissa = nvl(fs.getSpesaFissaVendita()) + nvl(fs.getSpesaFissaRete());
-            // imponibile + iva: comprende anche le voci che non confluiscono nelle righe dello scontrino
-            double totaleBolletta = nvl(fs.getTotaleImponibile()) + nvl(fs.getTotaleIva());
-            writeCell(workbook, s, "pod", fornitura.getId());
-            writeCell(workbook, s, "indirizzo_fornitura", fornitura.getIndirizzo() + ", " + fornitura.getCap() + " "
-                    + fornitura.getComune() + " (" + fornitura.getProvincia() + ")");
-            writeCell(workbook, s, "potenza_impegnata", numero(fornitura.getPotenzaImpegnata()) + " kW");
-            // quota per consumi
-            writeCell(workbook, s, "consumo_netto", formato(consumo, "#,##0.000") + " kWh");
-            writeCell(workbook, s, "spesa_consumi", nvl(fs.getSpesaVendita()) + nvl(fs.getSpesaRete()));
-            writeCell(workbook, s, "spesa_media", prezzoMedio(fs.getSpesaMedia(), "/kWh"));
-            writeCell(workbook, s, "spesa_vendita", fs.getSpesaVendita());
-            writeCell(workbook, s, "spesa_vendita_media", prezzoMedio(fs.getSpesaVenditaMedia(), "/kWh"));
-            writeCell(workbook, s, "spesa_rete", fs.getSpesaRete());
-            writeCell(workbook, s, "spesa_rete_media", prezzoMedio(fs.getSpesaReteMedia(), "/kWh"));
-            // quota fissa (1 mese)
-            writeCell(workbook, s, "spesa_fissa", spesaFissa);
-            writeCell(workbook, s, "spesa_fissa_media", formato(spesaFissa, "#,##0.00") + " " + EURO + "/mese");
-            writeCell(workbook, s, "spesa_fissa_vendita", fs.getSpesaFissaVendita());
-            writeCell(workbook, s, "spesa_fissa_vendita_media", formato(nvl(fs.getSpesaFissaVendita()), "#,##0.00") + " " + EURO + "/mese");
-            writeCell(workbook, s, "spesa_fissa_rete", fs.getSpesaFissaRete());
-            writeCell(workbook, s, "spesa_fissa_rete_media", formato(nvl(fs.getSpesaFissaRete()), "#,##0.00") + " " + EURO + "/mese");
-            // quota potenza
-            String potenzaMedia = fs.getSpesaPotenzaReteMedia() != null
-                    ? formato(fs.getSpesaPotenzaReteMedia(), "#,##0.00") + " " + EURO + "/kW/mese" : "";
-            writeCell(workbook, s, "picco_potenza", numero(fs.getPotenzaOneri()) + " kW per 1 mese");
-            writeCell(workbook, s, "spesa_potenza", fs.getSpesaPotenzaRete());
-            writeCell(workbook, s, "spesa_potenza_media", potenzaMedia);
-            writeCell(workbook, s, "spesa_fissa_rete_2", fs.getSpesaPotenzaRete());
-            writeCell(workbook, s, "spesa_fissa_rete_2_media", potenzaMedia);
-            // accise, iva e totali
-            writeCell(workbook, s, "iva", nvl(fs.getTotaleImposte()) + nvl(fs.getTotaleIva()));
-            writeCell(workbook, s, "totale_bolletta", totaleBolletta);
-            writeCell(workbook, s, "totale_da_pagare", totaleBolletta + nvl(fs.getTotalePartite()));
-            if (!altrePartite(fs).isEmpty()) {
-                writeCell(workbook, s, "altre_partite_01", altrePartite(fs));
-                writeCell(workbook, s, "altre_partite_imp_01", fs.getTotalePartite());
-            }
-            // box dell'offerta
-            writeCell(workbook, s, "nome_offerta", offerta.getNome());
-            writeCell(workbook, s, "codice_offerta", offerta.getCodice());
-            if (!offerta.isPun()) {
-                writeCell(workbook, s, "box_tipologia_offerta", "Offerta a prezzo fisso");
-                writeCell(workbook, s, "box_tipologia_prezzo", "Monoraria");
-                writeCell(workbook, s, "box_formula", "Prezzo indicato");
-            }
-            if (offerta.getDataInizio() != null) writeCell(workbook, s, "data_inizio_offerta", offerta.getDataInizio());
-            if (offerta.getDataFine() != null) writeCell(workbook, s, "data_fine_offerta", offerta.getDataFine());
-            writeCell(workbook, s, "totale_offerta", formato(nvl(fs.getSpesaVendita()) + nvl(fs.getSpesaFissaVendita()), "#,##0.0000") + " " + EURO);
-            writeCell(workbook, s, "box_quota_consumi", "di cui spesa per la quota consumi " + formato(nvl(fs.getSpesaVendita()), "#,##0.00") + " " + EURO);
-            writeCell(workbook, s, "box_quota_fissa", "di cui spesa per la quota fissa " + formato(nvl(fs.getSpesaFissaVendita()), "#,##0.00") + " " + EURO);
-            writeCell(workbook, s, "box_valori_assoluti", String.format("%02d/%d: F1 %s %s/kWh -  F2 %s %s/kWh -  F3 %s %s/kWh",
-                    fattura.getMese(), fattura.getAnno(), numero(fs.getPrezzoF1()), EURO, numero(fs.getPrezzoF2()), EURO,
-                    numero(fs.getPrezzoF3()), EURO));
-            // consumi fatturati
-            LocalDate periodo = LocalDate.of(fattura.getAnno(), fattura.getMese(), 15);
-            writeCell(workbook, s, "periodo_imposte", periodo);
-            writeCell(workbook, s, "periodo_imposte_2", periodo);
-            writeCell(workbook, s, "periodo_imposte_3", periodo);
-            writeCell(workbook, s, "consumo_F1", fs.getConsumoF1());
-            writeCell(workbook, s, "consumo_F2", fs.getConsumoF2());
-            writeCell(workbook, s, "consumo_F3", fs.getConsumoF3());
-            writeCell(workbook, s, "consumo_F1r", fs.getConsumoF1r());
-            writeCell(workbook, s, "consumo_F2r", fs.getConsumoF2r());
-            writeCell(workbook, s, "consumo_F3r", fs.getConsumoF3r());
-            writeCell(workbook, s, "consumo_attiva_tot", fs.getConsumoTot());
-            writeCell(workbook, s, "consumo_reattiva_tot", fs.getConsumoTotR());
-            writeCell(workbook, s, "potenza_prelevata_F1", nvl(lettura.getPotF1()) * kp);
-            writeCell(workbook, s, "potenza_prelevata_F2", nvl(lettura.getPotF2()) * kp);
-            writeCell(workbook, s, "potenza_prelevata_F3", nvl(lettura.getPotF3()) * kp);
-            // letture del contatore
-            writeCell(workbook, s, "data_lettura_old", letturaOld.getDataLettura());
-            writeCell(workbook, s, "tipo_lettura_old", tipoLettura(letturaOld.getTipoLettura()));
-            writeCell(workbook, s, "lettura_F1_old", letturaOld.getEaF1());
-            writeCell(workbook, s, "lettura_F2_old", letturaOld.getEaF2());
-            writeCell(workbook, s, "lettura_F3_old", letturaOld.getEaF3());
-            writeCell(workbook, s, "fattore_K_old", letturaOld.getKa());
-            writeCell(workbook, s, "data_lettura", lettura.getDataLettura());
-            writeCell(workbook, s, "tipo_lettura", tipoLettura(lettura.getTipoLettura()));
-            writeCell(workbook, s, "lettura_F1", lettura.getEaF1());
-            writeCell(workbook, s, "lettura_F2", lettura.getEaF2());
-            writeCell(workbook, s, "lettura_F3", lettura.getEaF3());
-            writeCell(workbook, s, "fattore_K", lettura.getKa());
-
-            saveWorkbookToFile(workbook, fileName);
+        // ---------------- pagina 3: dettaglio ----------------
+        String s = fornitura.getId() + " consumi";
+        writeCell(dettaglio, s, "codice_cliente", codiceCliente(fornitura.getCliente()));
+        writeCell(dettaglio, s, "pod", fornitura.getId());
+        writeCell(dettaglio, s, "potenza_disponibile", fornitura.getPotenzaDisponibile());
+        writeCell(dettaglio, s, "tipo_misuratore", capitalize(fornitura.getTipoContatore().name()));
+        writeCell(dettaglio, s, "potenza_impegnata", fs.getPotenzaOneri());
+        for (VoceFatturaSingola voce : fs.getVoci()) {
+            if (voce.getSezione() == SezioneFattura.ALTRE_PARTITE) continue; // riga unica, scritta sotto
+            String nome = "voce_" + voce.getCodice();
+            if (findCell(dettaglio, s, nome) == null) continue;
+            setValue(findCell(dettaglio, s, nome, COL_DESCRIZIONE), voce.getDescrizione());
+            setValue(findCell(dettaglio, s, nome, COL_DAL), voce.getDal());
+            setValue(findCell(dettaglio, s, nome, COL_AL), voce.getAl());
+            setValue(findCell(dettaglio, s, nome, COL_UNITA), voce.getUnita());
+            setValue(findCell(dettaglio, s, nome, COL_UNITARIO), voce.getUnitario());
+            setValue(findCell(dettaglio, s, nome, COL_QUANTITA), voce.getQuantita());
+            setValue(findCell(dettaglio, s, nome, COL_IMPORTO), voce.getImporto());
+            setValue(findCell(dettaglio, s, nome, COL_IVA), voce.getIva());
         }
+        writeCell(dettaglio, s, "totale_materia", fs.getTotaleMateria());
+        writeCell(dettaglio, s, "totale_trasporto", fs.getTotaleTrasporto());
+        writeCell(dettaglio, s, "totale_oneri", fs.getTotaleOneri());
+        writeCell(dettaglio, s, "totale_accise", fs.getTotaleImposte());
+        writeCell(dettaglio, s, "altre_partite_1", altrePartite(fs));
+        writeCell(dettaglio, s, "totale_partite", fs.getTotalePartite());
+        writeCell(dettaglio, s, "aliquota_iva", fornitura.getIva() / 100);
+        writeCell(dettaglio, s, "imponibile", fs.getTotaleImponibile());
+        writeCell(dettaglio, s, "totale_iva", fs.getTotaleIva());
+
+        // ---------------- pagina 2: scontrino ----------------
+        s = fornitura.getId() + " letture";
+        double consumo = nvl(fs.getConsumoTot());
+        double spesaFissa = nvl(fs.getSpesaFissaVendita()) + nvl(fs.getSpesaFissaRete());
+        // imponibile + iva: comprende anche le voci che non confluiscono nelle righe dello scontrino
+        double totaleBolletta = nvl(fs.getTotaleImponibile()) + nvl(fs.getTotaleIva());
+        writeCell(scontrino, s, "pod", fornitura.getId());
+        writeCell(scontrino, s, "indirizzo_fornitura", fornitura.getIndirizzo() + ", " + fornitura.getCap() + " "
+                + fornitura.getComune() + " (" + fornitura.getProvincia() + ")");
+        writeCell(scontrino, s, "potenza_impegnata", numero(fornitura.getPotenzaImpegnata()) + " kW");
+        // quota per consumi
+        writeCell(scontrino, s, "consumo_netto", formato(consumo, "#,##0.000") + " kWh");
+        writeCell(scontrino, s, "spesa_consumi", nvl(fs.getSpesaVendita()) + nvl(fs.getSpesaRete()));
+        writeCell(scontrino, s, "spesa_media", prezzoMedio(fs.getSpesaMedia(), "/kWh"));
+        writeCell(scontrino, s, "spesa_vendita", fs.getSpesaVendita());
+        writeCell(scontrino, s, "spesa_vendita_media", prezzoMedio(fs.getSpesaVenditaMedia(), "/kWh"));
+        writeCell(scontrino, s, "spesa_rete", fs.getSpesaRete());
+        writeCell(scontrino, s, "spesa_rete_media", prezzoMedio(fs.getSpesaReteMedia(), "/kWh"));
+        // quota fissa (1 mese)
+        writeCell(scontrino, s, "spesa_fissa", spesaFissa);
+        writeCell(scontrino, s, "spesa_fissa_media", formato(spesaFissa, "#,##0.00") + " " + EURO + "/mese");
+        writeCell(scontrino, s, "spesa_fissa_vendita", fs.getSpesaFissaVendita());
+        writeCell(scontrino, s, "spesa_fissa_vendita_media", formato(nvl(fs.getSpesaFissaVendita()), "#,##0.00") + " " + EURO + "/mese");
+        writeCell(scontrino, s, "spesa_fissa_rete", fs.getSpesaFissaRete());
+        writeCell(scontrino, s, "spesa_fissa_rete_media", formato(nvl(fs.getSpesaFissaRete()), "#,##0.00") + " " + EURO + "/mese");
+        // quota potenza
+        String potenzaMedia = fs.getSpesaPotenzaReteMedia() != null
+                ? formato(fs.getSpesaPotenzaReteMedia(), "#,##0.00") + " " + EURO + "/kW/mese" : "";
+        writeCell(scontrino, s, "picco_potenza", numero(fs.getPotenzaOneri()) + " kW per 1 mese");
+        writeCell(scontrino, s, "spesa_potenza", fs.getSpesaPotenzaRete());
+        writeCell(scontrino, s, "spesa_potenza_media", potenzaMedia);
+        writeCell(scontrino, s, "spesa_fissa_rete_2", fs.getSpesaPotenzaRete());
+        writeCell(scontrino, s, "spesa_fissa_rete_2_media", potenzaMedia);
+        // accise, iva e totali
+        writeCell(scontrino, s, "iva", nvl(fs.getTotaleImposte()) + nvl(fs.getTotaleIva()));
+        writeCell(scontrino, s, "totale_bolletta", totaleBolletta);
+        writeCell(scontrino, s, "totale_da_pagare", totaleBolletta + nvl(fs.getTotalePartite()));
+        if (!altrePartite(fs).isEmpty()) {
+            writeCell(scontrino, s, "altre_partite_01", altrePartite(fs));
+            writeCell(scontrino, s, "altre_partite_imp_01", fs.getTotalePartite());
+        }
+        // box dell'offerta
+        writeCell(scontrino, s, "nome_offerta", offerta.getNome());
+        writeCell(scontrino, s, "codice_offerta", offerta.getCodice());
+        if (!offerta.isPun()) {
+            writeCell(scontrino, s, "box_tipologia_offerta", "Offerta a prezzo fisso");
+            writeCell(scontrino, s, "box_tipologia_prezzo", "Monoraria");
+            writeCell(scontrino, s, "box_formula", "Prezzo indicato");
+        }
+        if (offerta.getDataInizio() != null) writeCell(scontrino, s, "data_inizio_offerta", offerta.getDataInizio());
+        if (offerta.getDataFine() != null) writeCell(scontrino, s, "data_fine_offerta", offerta.getDataFine());
+        writeCell(scontrino, s, "totale_offerta", formato(nvl(fs.getSpesaVendita()) + nvl(fs.getSpesaFissaVendita()), "#,##0.0000") + " " + EURO);
+        writeCell(scontrino, s, "box_quota_consumi", "di cui spesa per la quota consumi " + formato(nvl(fs.getSpesaVendita()), "#,##0.00") + " " + EURO);
+        writeCell(scontrino, s, "box_quota_fissa", "di cui spesa per la quota fissa " + formato(nvl(fs.getSpesaFissaVendita()), "#,##0.00") + " " + EURO);
+        writeCell(scontrino, s, "box_valori_assoluti", String.format("%02d/%d: F1 %s %s/kWh -  F2 %s %s/kWh -  F3 %s %s/kWh",
+                fattura.getMese(), fattura.getAnno(), numero(fs.getPrezzoF1()), EURO, numero(fs.getPrezzoF2()), EURO,
+                numero(fs.getPrezzoF3()), EURO));
+        // consumi fatturati
+        LocalDate periodo = LocalDate.of(fattura.getAnno(), fattura.getMese(), 15);
+        writeCell(scontrino, s, "periodo_imposte", periodo);
+        writeCell(scontrino, s, "periodo_imposte_2", periodo);
+        writeCell(scontrino, s, "periodo_imposte_3", periodo);
+        writeCell(scontrino, s, "consumo_F1", fs.getConsumoF1());
+        writeCell(scontrino, s, "consumo_F2", fs.getConsumoF2());
+        writeCell(scontrino, s, "consumo_F3", fs.getConsumoF3());
+        writeCell(scontrino, s, "consumo_F1r", fs.getConsumoF1r());
+        writeCell(scontrino, s, "consumo_F2r", fs.getConsumoF2r());
+        writeCell(scontrino, s, "consumo_F3r", fs.getConsumoF3r());
+        writeCell(scontrino, s, "consumo_attiva_tot", fs.getConsumoTot());
+        writeCell(scontrino, s, "consumo_reattiva_tot", fs.getConsumoTotR());
+        writeCell(scontrino, s, "potenza_prelevata_F1", nvl(lettura.getPotF1()) * kp);
+        writeCell(scontrino, s, "potenza_prelevata_F2", nvl(lettura.getPotF2()) * kp);
+        writeCell(scontrino, s, "potenza_prelevata_F3", nvl(lettura.getPotF3()) * kp);
+        // letture del contatore
+        writeCell(scontrino, s, "data_lettura_old", letturaOld.getDataLettura());
+        writeCell(scontrino, s, "tipo_lettura_old", tipoLettura(letturaOld.getTipoLettura()));
+        writeCell(scontrino, s, "lettura_F1_old", letturaOld.getEaF1());
+        writeCell(scontrino, s, "lettura_F2_old", letturaOld.getEaF2());
+        writeCell(scontrino, s, "lettura_F3_old", letturaOld.getEaF3());
+        writeCell(scontrino, s, "fattore_K_old", letturaOld.getKa());
+        writeCell(scontrino, s, "data_lettura", lettura.getDataLettura());
+        writeCell(scontrino, s, "tipo_lettura", tipoLettura(lettura.getTipoLettura()));
+        writeCell(scontrino, s, "lettura_F1", lettura.getEaF1());
+        writeCell(scontrino, s, "lettura_F2", lettura.getEaF2());
+        writeCell(scontrino, s, "lettura_F3", lettura.getEaF3());
+        writeCell(scontrino, s, "fattore_K", lettura.getKa());
     }
 
     // ------------------------------------------------------------------
     //  pagina 1: riepilogo
     // ------------------------------------------------------------------
 
-    private void writePagina1(String fileName, Fattura fattura) throws IOException {
+    private void writePagina1(Workbook workbook, Fattura fattura) {
         String s = "riepilogo";
         Cliente cliente = fattura.getCliente();
         LocalDate dataFattura = fattura.getDataFattura();
@@ -319,73 +295,155 @@ public class ExcelService {
         double consumo = nvl(fattura.getConsumoTot());
         String indirizzo2 = String.format("%05d", cliente.getCap()) + " " + cliente.getComune() + " (" + cliente.getProvincia() + ")";
 
-        try (Workbook workbook = WorkbookFactory.create(new FileInputStream(fileName))) {
-            writeCell(workbook, s, "numero_fattura", fattura.getNumeroFattura());
-            writeCell(workbook, s, "data_fattura", dataFattura);
-            writeCell(workbook, s, "periodo_fatturazione", "Fattura di " + nomeMese(fattura.getMese()) + " " + fattura.getAnno());
-            writeCell(workbook, s, "scadenza", "Scadenza " + YearMonth.from(dataFattura).atEndOfMonth().getDayOfMonth() + " "
-                    + nomeMese(dataFattura.getMonthValue()) + " " + dataFattura.getYear());
-            writeCell(workbook, s, "ragione_sociale", cliente.getRagioneSociale());
-            writeCell(workbook, s, "indirizzo_1", cliente.getIndirizzo());
-            writeCell(workbook, s, "indirizzo_2", indirizzo2);
-            // sintesi degli importi
-            writeCell(workbook, s, "totale_materia", materia);
-            writeCell(workbook, s, "totale_oneri", trasportoOneri);
-            writeCell(workbook, s, "totale_accise", accise);
-            writeCell(workbook, s, "totale_partite", partite);
-            writeCell(workbook, s, "totale_iva", iva);
-            writeCell(workbook, s, "totale_fattura", totale);
-            writeCell(workbook, s, "consumo_tot", consumo);
-            writeCell(workbook, s, "totale_da_pagare", totale);
-            writeCell(workbook, s, "importo_da_pagare", totale);
-            // dati del grafico
-            writeCell(workbook, s, "grafico_materia", materia);
-            writeCell(workbook, s, "grafico_oneri", trasportoOneri);
-            writeCell(workbook, s, "grafico_accise", accise);
-            writeCell(workbook, s, "grafico_partite", partite);
-            writeCell(workbook, s, "grafico_iva", iva);
-            // dati cliente
-            writeCell(workbook, s, "ragione_sociale_dati", cliente.getRagioneSociale());
-            writeCell(workbook, s, "indirizzo_1_dati", cliente.getIndirizzo());
-            writeCell(workbook, s, "indirizzo_2_dati", indirizzo2);
-            writeCell(workbook, s, "partita_iva", cliente.getPIva());
-            writeCell(workbook, s, "codice_cliente", codiceCliente(cliente));
-            writeCell(workbook, s, "costo_medio_materia", consumo > 1 ? materia / consumo : null);
-            writeCell(workbook, s, "costo_medio_bolletta", consumo > 1 ? totale / consumo : null);
-            // riepilogo iva
-            writeCell(workbook, s, "iva", fattureSingole.get(0).getFornitura().getIva() / 100);
-            writeCell(workbook, s, "imponibile", materia + trasportoOneri + accise);
-            writeCell(workbook, s, "importo_iva", iva);
-            saveWorkbookToFile(workbook, fileName);
-        }
+        writeCell(workbook, s, "numero_fattura", fattura.getNumeroFattura());
+        writeCell(workbook, s, "data_fattura", dataFattura);
+        writeCell(workbook, s, "periodo_fatturazione", "Fattura di " + nomeMese(fattura.getMese()) + " " + fattura.getAnno());
+        writeCell(workbook, s, "scadenza", "Scadenza " + YearMonth.from(dataFattura).atEndOfMonth().getDayOfMonth() + " "
+                + nomeMese(dataFattura.getMonthValue()) + " " + dataFattura.getYear());
+        writeCell(workbook, s, "ragione_sociale", cliente.getRagioneSociale());
+        writeCell(workbook, s, "indirizzo_1", cliente.getIndirizzo());
+        writeCell(workbook, s, "indirizzo_2", indirizzo2);
+        // sintesi degli importi
+        writeCell(workbook, s, "totale_materia", materia);
+        writeCell(workbook, s, "totale_oneri", trasportoOneri);
+        writeCell(workbook, s, "totale_accise", accise);
+        writeCell(workbook, s, "totale_partite", partite);
+        writeCell(workbook, s, "totale_iva", iva);
+        writeCell(workbook, s, "totale_fattura", totale);
+        writeCell(workbook, s, "consumo_tot", consumo);
+        writeCell(workbook, s, "totale_da_pagare", totale);
+        writeCell(workbook, s, "importo_da_pagare", totale);
+        // dati del grafico
+        writeCell(workbook, s, "grafico_materia", materia);
+        writeCell(workbook, s, "grafico_oneri", trasportoOneri);
+        writeCell(workbook, s, "grafico_accise", accise);
+        writeCell(workbook, s, "grafico_partite", partite);
+        writeCell(workbook, s, "grafico_iva", iva);
+        // dati cliente
+        writeCell(workbook, s, "ragione_sociale_dati", cliente.getRagioneSociale());
+        writeCell(workbook, s, "indirizzo_1_dati", cliente.getIndirizzo());
+        writeCell(workbook, s, "indirizzo_2_dati", indirizzo2);
+        writeCell(workbook, s, "partita_iva", cliente.getPIva());
+        writeCell(workbook, s, "codice_cliente", codiceCliente(cliente));
+        writeCell(workbook, s, "costo_medio_materia", consumo > 1 ? materia / consumo : null);
+        writeCell(workbook, s, "costo_medio_bolletta", consumo > 1 ? totale / consumo : null);
+        // riepilogo iva
+        writeCell(workbook, s, "iva", fattureSingole.get(0).getFornitura().getIva() / 100);
+        writeCell(workbook, s, "imponibile", materia + trasportoOneri + accise);
+        writeCell(workbook, s, "importo_iva", iva);
     }
 
+    /**
+     * Fattura pronta da comporre: le pagine compilate (file temporanei) e i file da produrre.
+     */
+    public record LavoroFattura(Long fatturaId, String xlsx, String pdf, List<String> pagine, Path cartella) {
+    }
+
+    /**
+     * Genera xlsx e pdf di una fattura e li registra sulla fattura.
+     */
     public void createFattura(Fattura fattura) throws IOException {
-        String numeroFattura = fattura.getNumeroFattura();
+        LavoroFattura lavoro = preparaFattura(fattura);
+        String errore = componiFatture(List.of(lavoro)).get(0);
+        if (errore != null) {
+            throw new RuntimeException("Composizione della fattura " + fattura.getNumeroFattura() + " non riuscita:\n" + errore);
+        }
+        fattura.setXlsx(lavoro.xlsx());
+        fattura.setPdf(lavoro.pdf());
+        fatturaRepository.save(fattura);
+    }
+
+    /**
+     * Compila con POI ogni pagina della fattura in un file temporaneo creato dal template (solo Java, niente Excel):
+     * può essere eseguito in parallelo per più fatture.
+     */
+    public LavoroFattura preparaFattura(Fattura fattura) throws IOException {
         int mese = fattura.getMese();
         int anno = fattura.getAnno();
         // nome file come nelle fatture di esempio: "<numero> - <ragione sociale>" senza caratteri non validi
-        String nomeFile = (numeroFattura + " - " + fattura.getCliente().getRagioneSociale()).replaceAll("[<>|/*\\\\?\":.]", "").trim();
-        String fatturaFileName = "fatture/" + anno + "/" + mese + "/" + nomeFile + ".xlsx";
-        log.debug("Avviata creazione file excel: " + fatturaFileName);
-        Workbook fatturaXls = createExcelFile();
-        saveWorkbookToFile(fatturaXls, fatturaFileName);
-        fatturaXls.close();
-        for (FatturaSingola fatturaSingola : fattura.getFattureSingole()) {
-            String pod = fatturaSingola.getFornitura().getId();
-            addPagina("template/pagina_2.xlsx", fatturaFileName, pod + " letture");
-            addPagina("template/pagina_3.xlsx", fatturaFileName, pod + " consumi");
-            writeFornitura(fatturaFileName, fatturaSingola);
+        String nomeFile = (fattura.getNumeroFattura() + " - " + fattura.getCliente().getRagioneSociale()).replaceAll("[<>|/*\\\\?\":.]", "").trim();
+        String xlsx = "fatture/" + anno + "/" + mese + "/" + nomeFile + ".xlsx";
+        String pdf = "fatture/" + anno + "/" + mese + "/" + nomeFile + ".pdf";
+        Files.createDirectories(Path.of(xlsx).getParent());
+
+        Path cartella = Files.createTempDirectory("fattura_");
+        try {
+            List<String> pagine = new ArrayList<>();
+            Workbook riepilogo = apriTemplate(TEMPLATE_RIEPILOGO, "riepilogo");
+            writePagina1(riepilogo, fattura);
+            pagine.add(salva(riepilogo, cartella, pagine.size()));
+            for (FatturaSingola fatturaSingola : fattura.getFattureSingole()) {
+                String pod = fatturaSingola.getFornitura().getId();
+                Workbook scontrino = apriTemplate(TEMPLATE_SCONTRINO, pod + " letture");
+                Workbook dettaglio = apriTemplate(TEMPLATE_DETTAGLIO, pod + " consumi");
+                writeFornitura(dettaglio, scontrino, fatturaSingola);
+                pagine.add(salva(scontrino, cartella, pagine.size()));
+                pagine.add(salva(dettaglio, cartella, pagine.size()));
+            }
+            return new LavoroFattura(fattura.getId(), xlsx, pdf, pagine, cartella);
+        } catch (IOException | RuntimeException e) {
+            eliminaCartella(cartella);
+            throw e;
         }
-        addPagina("template/pagina_1.xlsx", fatturaFileName, "riepilogo");
-        writePagina1(fatturaFileName, fattura);
+    }
 
-        save2Pdf(fatturaFileName);
+    /**
+     * Compone xlsx e pdf delle fatture con un solo processo python e una sola istanza di Excel,
+     * una fattura dopo l'altra. Elimina i file temporanei delle pagine.
+     *
+     * @return per ogni lavoro, nello stesso ordine, il messaggio d'errore o null se la fattura è stata composta
+     */
+    public List<String> componiFatture(List<LavoroFattura> lavori) throws IOException {
+        Path cartella = Files.createTempDirectory("componi_");
+        try {
+            ObjectMapper json = new ObjectMapper();
+            Path fileLavori = cartella.resolve("lavori.json");
+            Path fileEsiti = cartella.resolve("esiti.json");
+            json.writeValue(fileLavori.toFile(), lavori.stream()
+                    .map(l -> Map.of("xlsx", l.xlsx(), "pdf", l.pdf(), "pagine", l.pagine()))
+                    .toList());
+            log.debug("Composizione di {} fatture", lavori.size());
+            eseguiScript("script/componiFattura.py", fileLavori.toString(), fileEsiti.toString());
+            List<Map<String, Object>> esiti = json.readValue(fileEsiti.toFile(), new TypeReference<>() {
+            });
+            List<String> errori = new ArrayList<>();
+            for (int i = 0; i < lavori.size(); i++) {
+                Map<String, Object> esito = i < esiti.size() ? esiti.get(i) : null;
+                if (esito == null) errori.add("Fattura non composta");
+                else errori.add(Boolean.TRUE.equals(esito.get("ok")) ? null : String.valueOf(esito.get("errore")));
+            }
+            return errori;
+        } finally {
+            eliminaCartella(cartella);
+            lavori.forEach(l -> eliminaCartella(l.cartella()));
+        }
+    }
 
-        String pdf = fatturaFileName.substring(0, fatturaFileName.lastIndexOf(".")) + ".pdf";
-        fattura.setPdf(pdf);
-        fattura.setXlsx(fatturaFileName);
-        fatturaRepository.save(fattura);
+    private static void eliminaCartella(Path cartella) {
+        try (var files = Files.walk(cartella)) {
+            files.sorted(java.util.Comparator.reverseOrder()).forEach(f -> f.toFile().delete());
+        } catch (IOException e) {
+            log.warn("Impossibile eliminare la cartella temporanea {}", cartella);
+        }
+    }
+
+    /**
+     * Carica il template in memoria e rinomina il suo unico foglio (POI aggiorna anche le celle con nome).
+     */
+    private Workbook apriTemplate(String template, String nomeFoglio) throws IOException {
+        try (InputStream in = new FileInputStream(template)) {
+            Workbook workbook = WorkbookFactory.create(in);
+            workbook.setSheetName(0, nomeFoglio);
+            return workbook;
+        }
+    }
+
+    private String salva(Workbook workbook, Path cartella, int indice) throws IOException {
+        Path file = cartella.resolve(String.format("pagina_%03d.xlsx", indice));
+        try (workbook; OutputStream out = Files.newOutputStream(file)) {
+            workbook.write(out);
+        }
+        return file.toString();
     }
 
     // ------------------------------------------------------------------
