@@ -101,7 +101,10 @@ public class FatturaService {
                         fatturaSingola.getConsumoTot(), fatturaSingola.getConsumoTotVerifica());
             fatturaSingola.setPotenzaPrelevata(consumi.get("potMax"));
             // tutte le voci del dettaglio, i totali e i valori dello scontrino
-            calcoloFatturaService.calcola(fatturaSingola, punService.getByMeseAndAnno(mese, anno));
+            // PUN specifico del POD se presente, altrimenti quello generico; non serve per le offerte a prezzo fisso
+            Offerta offerta = fornitura.getOfferta();
+            Pun pun = offerta != null && offerta.isPun() ? punService.getPun(fornitura, mese, anno) : null;
+            calcoloFatturaService.calcola(fatturaSingola, pun);
             fatturaSingolaRepository.save(fatturaSingola);
             fattura.addFatturaSingola(fatturaSingola);
         });
