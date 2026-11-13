@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-IEG (Emmek) back-end: a Spring Boot 3 / Java 17 REST API for managing energy resale/billing for a group of clients (
+IEG (Emmek) back-end: a Spring Boot 3 / Java 21 REST API for managing energy resale/billing for a group of clients (
 `Cliente`) and their supply points (`Fornitura`, identified by POD code). It ingests meter readings from distributor XML
 flows and Excel files, and computes monthly invoices (`Fattura`) from readings, tariffs, and regulatory charges.
 
@@ -13,7 +13,10 @@ glossary below). Keep new code consistent with this convention; don't translate 
 
 ## Build, run, test
 
-Maven wrapper is used; a JDK 17 and a local PostgreSQL instance (db `ieg`) are required.
+Maven wrapper is used; a JDK 21 and a local PostgreSQL instance (db `ieg-2.1`, see `spring.datasource.url`) are
+required. Invoice generation also needs Windows with Microsoft Excel installed and a `python` on PATH with `xlwings`
+and `pywin32` (`python -m pip install xlwings pywin32`): the scripts in `script/` drive Excel via COM to copy template
+sheets and export the PDF.
 
 ```
 ./mvnw spring-boot:run          # run the app (also: mvnw.cmd on Windows)
@@ -25,15 +28,18 @@ Maven wrapper is used; a JDK 17 and a local PostgreSQL instance (db `ieg`) are r
 Configuration lives in `src/main/resources/application.properties`, which imports `env.properties` (gitignored, not
 committed) for secrets: `PG_PASSWORD`, `JWT_SECRET`, `CLOUDINARY_*`, `SENDGRID_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_*`,
 `SECURITY_PASSWORD`, `PORT_SERVER`. A local `env.properties` file must exist (with these keys) before the app will
-start. `spring.jpa.hibernate.ddl-auto=update` — schema evolves automatically from entities against the local Postgres
-DB.
+start. `spring.jpa.hibernate.ddl-auto=none` — the schema is **not** generated from entities: it is maintained by hand in
+`src/main/resources/schema.sql`. When adding/changing entity columns or tables, update `schema.sql` **and** apply the
+matching `ALTER TABLE`/`CREATE TABLE` to the local DB, otherwise Hibernate fails at runtime with "column … does not
+exist".
 
 There is no linter config in the repo; formatting follows whatever IntelliJ default was used historically (see `.idea/`,
 though that's gitignored-equivalent and shouldn't be relied on).
 
-Test coverage is minimal — only a Spring context-load smoke test exists (`IegApplicationTests`). Don't assume a broader
-test suite exists when reasoning about regressions; verify behavior manually (e.g. via the Swagger UI or manual
-requests) when changing service logic.
+Test coverage is minimal: a Spring context-load smoke test (`IegApplicationTests`) and `CalcoloFatturaServiceTest`, a
+plain JUnit test (no Spring/DB) that checks the invoice calculation against the reference invoice AUEE202611007. Keep
+that test passing when touching invoice math; for everything else verify behavior manually (e.g. via the Swagger UI or
+manual requests).
 
 ## Architecture
 
@@ -42,16 +48,17 @@ Standard layered Spring MVC structure under `src/main/java/org/emmek/IEG/`:
 - `controllers/` — `@RestController`s, one per aggregate (Cliente, Fornitura, Lettura, Fattura, Dispacciamento, Oneri,
   Auth). Thin: validate `@RequestBody` DTOs via `BindingResult` and throw `BadRequestException` on failure, delegate to
   services.
-- `services/` — business logic and orchestration. Most invoice math lives in `FatturaService`.
+- `services/` — business logic and orchestration. Invoice math lives in `CalcoloFatturaService` (see Invoicing flow).
 - `repositories/` — Spring Data JPA repositories, one per entity.
 - `entities/` — JPA entities (`@Entity`), Lombok `@Getter/@Setter`.
 - `payloads/` — request/response DTOs (records), used instead of exposing entities directly for writes.
-- `enums/` — domain enums (`BTA`, `CodiceDistributore`, `Fatturazione`, `TipoContatore`, `TipoLettura`, `TipoPrelievo`)
-  plus a custom `@ValueOfEnum` bean-validation annotation for validating incoming enum strings.
-- `helpers/xml/` — JAXB-annotated classes (`FlussoMisure`, `DatiPod`, `DatiPdp`, `Misura`, `MisuraOraria`) mapping the
+- `enums/` — domain enums (`BTA`, `CodiceDistributore`, `Fatturazione`, `TipoContatore`, `TipoLettura`, `TipoOfferta`,
+  `TipoPrelievo`, `SezioneFattura`, `GruppoScontrino`) plus a custom `@ValueOfEnum` bean-validation annotation for
+  validating incoming enum strings.
+- `model/xml/` — JAXB-annotated classes (`FlussoMisure`, `DatiPod`, `DatiPdp`, `Misura`, `MisuraOraria`) mapping the
   distributor's XML meter-reading flow format.
-- `helpers/excel/` — Poiji-annotated model classes (`ClienteModel`, `FornituraModel`, `LetturaModel`) mapping the
-  bootstrap `.xlsx` import files under `data/`.
+- `model/excel/` — Poiji-annotated model classes (`ClienteModel`, `FornituraModel`, `LetturaModel`, `OffertaModel`,
+  `OneriModel`, `DispacciamentoModel`) mapping the bootstrap `.xlsx` import files under `data/`.
 - `security/` — stateless JWT auth: `JWTAuthFilter` (reads `Authorization: Bearer`, populates `SecurityContextHolder`),
   `JWTTools` (sign/verify), `SecurityConfig` (CORS, CSRF disabled, `@EnableMethodSecurity` — most write endpoints are
   gated with `@PreAuthorize("hasAuthority('ADMIN')")`).
@@ -60,10 +67,10 @@ Standard layered Spring MVC structure under `src/main/java/org/emmek/IEG/`:
   responses; `ExceptionsHandlerFilter` runs before `JWTAuthFilter` in the filter chain to translate exceptions thrown
   from filters.
 - `configs/` — `JaxbParser` (shared `JAXBContext` for `FlussoMisure`), `SpringDocConfig` (OpenAPI/Swagger).
-- `utils/Runner.java` — `CommandLineRunner` executed on every app startup: creates ADMIN/USER roles, creates the admin
-  user from `env.properties`, and bulk-imports `data/clienti.xlsx`, `data/forniture.xlsx`, `data/letture.xlsx` into the
-  DB (idempotent — skips existing rows, but runs on every boot in dev). Be aware of this when starting the app locally
-  against a populated DB.
+- `utils/Runner.java` — `CommandLineRunner` executed on every app startup. It contains the bootstrap steps (create
+  ADMIN/USER roles and the admin user from `env.properties`, import clienti/forniture/offerte/letture/oneri/
+  dispacciamento from the `.xlsx` files under `data/`), but **all calls in `run()` are currently commented out**: the
+  local DB is already populated. Uncomment selectively only when (re)bootstrapping a DB.
 
 ### Meter reading ingestion flow
 
@@ -74,6 +81,32 @@ exists for the same day). This is a heavy, `ADMIN`-only, synchronous operation �
 and skipped rather than failing the whole batch.
 
 ### Invoicing flow
+
+`GET /api/clienti/{id}/fattura?mese=&anno=` → `ClienteService.newFattura` → `FatturaService.newfattura` (mese/anno are
+the consumption month):
+
+1. Invoice number `AUEE<yyyy><MM of issue month = consumption month + 1><client id, 3 digits>`; if it already exists
+   the invoice is overwritten (its `FatturaSingola` rows are deleted first).
+2. One `FatturaSingola` per `Fornitura` of the client, with `Oneri` (by BTA/trimestre) and `Dispacciamento`.
+3. `LetturaService.getLetture`: readings from the `letturaFinale` date of the previous month's `FatturaSingola` (or
+   the 1st of the month) to the last day of the month. `getConsumi` computes consumption over all readings, multiplied
+   by the meter constants (`ka` active, `kr` reactive, `kp` power); losses are 10% per band. The first and last
+   readings are stored on the `FatturaSingola` (`letturaIniziale`/`letturaFinale`); `consumoTotVerifica` (last − first)
+   is a cross-check that logs a warning when it differs. TODO: meter replacement readings (`TipoLettura.CAMBIO`).
+4. `CalcoloFatturaService.calcola` builds every detail line as a `VoceFatturaSingola` (table `voci_fatture_singole`:
+   codice, sezione, unità, unitario, quantità, importo, iva, gruppo scontrino) and sets totals, IVA and the "scontrino"
+   values (spesa vendita/rete, quote fisse/potenza, prezzi medi) on `FatturaSingola`. Rules: PUN prices or the
+   offerta's fixed F1–F3; spread only if `hasSpread` (`Offerta.getSpreadEffettivo`); OCV = `offerta.ocv` €/kWh on
+   consumption + losses; power quotas on potenza impegnata if < 16 kW, otherwise on peak power; reactive penalties
+   only for BTA6.
+5. `ExcelService.createFattura` writes `fatture/<anno>/<mese>/<numero> - <ragione sociale>.xlsx` and `.pdf`.
+
+**Templates** (`template/pagina_1.xlsx` riepilogo, `pagina_2.xlsx` scontrino, `pagina_3.xlsx` dettaglio) contain **no
+formulas**: Java computes every value and `ExcelService` only writes into named cells. Detail lines are located by the
+named cell `voce_<codice>` (column A of the row; columns G–M hold dal, al, unità, unitario, quantità, importo, iva).
+The same names exist on several sheets, so lookups must use the name that refers to the target sheet (`findCell`). The
+templates are gitignored (`*.xlsx`); previous versions are in `template/bak/`. The VBA macros the Java flow was ported
+from are in `template/*.bas`.
 
 ## Notes / gotchas
 
