@@ -3,6 +3,7 @@ package org.emmek.IEG.services;
 import org.emmek.IEG.entities.*;
 import org.emmek.IEG.enums.BTA;
 import org.emmek.IEG.enums.GruppoScontrino;
+import org.emmek.IEG.enums.ModalitaProgrammazione;
 import org.emmek.IEG.enums.SezioneFattura;
 import org.springframework.stereotype.Service;
 
@@ -78,8 +79,15 @@ public class CalcoloFatturaService {
         v.add("dispacciamento", "Dispacciamento", MATERIA, VENDITA, KWH, dispacciamento, consumo);
         v.add("perdite_dispacciamento", "Perdite Dispacciamento", MATERIA, VENDITA, KWH, dispacciamento, perdite);
         v.add("commercializzazione", "Prezzo commercializzazione vendita", MATERIA, FISSA_VENDITA, PDP, nvl(offerta.getOcf()), 1);
-        v.add("ocv", offerta.getDescrizione() != null ? offerta.getDescrizione() : "Oneri di commercializzazione variabili",
-                MATERIA, VENDITA, KWH, nvl(offerta.getOcv()), consumoConPerdite);
+        if (offerta.getModalitaProgrammazione() == ModalitaProgrammazione.CLASSIC) {
+            // percentuale sulla spesa per energia: quote energia F1-F3, relative perdite e spread
+            double spesaEnergia = v.importo("energia_f1", "perdite_f1", "energia_f2", "perdite_f2", "energia_f3", "perdite_f3", "spread");
+            v.add("ocv", offerta.getDescrizione() != null ? offerta.getDescrizione() : "Oneri di programmazione",
+                    MATERIA, VENDITA, PDP, nvl(offerta.getOcv()) * spesaEnergia / 100, 1);
+        } else {
+            v.add("ocv", offerta.getDescrizione() != null ? offerta.getDescrizione() : "Oneri di commercializzazione variabili",
+                    MATERIA, VENDITA, KWH, nvl(offerta.getOcv()), consumoConPerdite);
+        }
         v.add("rettifica", "Rettifica oneri di programmazione", MATERIA, null, PDP, 0, 1);
         // ---- trasporto e gestione del contatore
         v.add("maggiorazione_capacita", "Maggiorazione Corrispettivo Mercato Capacità var", TRASPORTO, VENDITA, KWH, maggiorazione, consumo);
@@ -161,6 +169,11 @@ public class CalcoloFatturaService {
             voce.setIva(iva);
             voce.setOrdine(fs.getVoci().size() + 1);
             fs.getVoci().add(voce);
+        }
+
+        double importo(String... codici) {
+            List<String> lista = List.of(codici);
+            return somma(fs.getVoci().stream().filter(v -> lista.contains(v.getCodice())).toList());
         }
 
         double totale(SezioneFattura sezione) {

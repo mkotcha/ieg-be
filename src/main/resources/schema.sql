@@ -188,7 +188,8 @@ CREATE TABLE offerte (
     spread Double precision,
     data_inizio date,
     data_fine date,
-    descrizione character varying(255)
+    descrizione character varying(255),
+    modalita_programmazione character varying(255) DEFAULT 'OCV'
 );
 
 CREATE TABLE oneri (

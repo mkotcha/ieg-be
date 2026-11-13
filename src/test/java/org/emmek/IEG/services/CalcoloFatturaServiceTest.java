@@ -2,9 +2,11 @@ package org.emmek.IEG.services;
 
 import org.emmek.IEG.entities.*;
 import org.emmek.IEG.enums.BTA;
+import org.emmek.IEG.enums.ModalitaProgrammazione;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,6 +20,45 @@ class CalcoloFatturaServiceTest {
 
     @Test
     void calcolaComeFatturaDiEsempio() {
+        FatturaSingola fs = fatturaDiEsempio();
+        new CalcoloFatturaService().calcola(fs, punDiEsempio());
+
+        // pagina 3: totali
+        assertEquals(16.9683, fs.getTotaleMateria(), DELTA);
+        assertEquals(3.7292, fs.getTotaleTrasporto(), DELTA);
+        assertEquals(2.4453, fs.getTotaleOneri(), DELTA);
+        assertEquals(0.2948, fs.getTotaleImposte(), DELTA);
+        assertEquals(23.4376, fs.getTotaleImponibile(), DELTA);
+        assertEquals(5.1563, fs.getTotaleIva(), DELTA);
+        // pagina 2: scontrino
+        assertEquals(0.208, fs.getPotenzaOneri(), DELTA);
+        assertEquals(7.3505, fs.getSpesaVendita(), DELTA);
+        assertEquals(1.1566, fs.getSpesaRete(), DELTA);
+        assertEquals(11.8276, fs.getSpesaFissaVendita(), DELTA);
+        assertEquals(1.9208, fs.getSpesaFissaRete(), DELTA);
+        assertEquals(0.8874, fs.getSpesaPotenzaRete(), DELTA);
+        // nell'esempio la media era calcolata da importi arrotondati a 4 decimali (8,5071 / 23,584)
+        assertEquals(0.360715, fs.getSpesaMedia(), 0.00001);
+        assertEquals(33, fs.getVoci().size());
+    }
+
+    @Test
+    void oneriProgrammazioneClassicInPercentualeSullaSpesaEnergia() {
+        FatturaSingola fs = fatturaDiEsempio();
+        fs.getFornitura().getOfferta().setModalitaProgrammazione(ModalitaProgrammazione.CLASSIC);
+        fs.getFornitura().getOfferta().setOcv(30.0);
+        new CalcoloFatturaService().calcola(fs, punDiEsempio());
+
+        double spesaEnergia = fs.getVoci().stream()
+                .filter(v -> List.of("energia_f1", "perdite_f1", "energia_f2", "perdite_f2", "energia_f3", "perdite_f3", "spread").contains(v.getCodice()))
+                .mapToDouble(VoceFatturaSingola::getImporto).sum();
+        VoceFatturaSingola ocv = fs.getVoci().stream().filter(v -> v.getCodice().equals("ocv")).findFirst().orElseThrow();
+        assertEquals(6.4367, spesaEnergia, DELTA);
+        assertEquals(spesaEnergia * 0.30, ocv.getImporto(), DELTA);
+        assertEquals(1.0, ocv.getQuantita());
+    }
+
+    private static FatturaSingola fatturaDiEsempio() {
         Offerta offerta = new Offerta();
         offerta.setPun(true);
         offerta.setHasSpread(true);
@@ -58,11 +99,6 @@ class CalcoloFatturaServiceTest {
         oneri.setQpArim(0.2877);
         oneri.setAccise(0.0125);
 
-        Pun pun = new Pun();
-        pun.setF1(0.238375);
-        pun.setF2(0.258289);
-        pun.setF3(0.221494);
-
         Lettura iniziale = new Lettura();
         iniziale.setDataLettura(LocalDate.of(2026, 9, 30));
         Lettura finale = new Lettura();
@@ -84,24 +120,15 @@ class CalcoloFatturaServiceTest {
         fs.setConsumoTotR(0.307);
         fs.setPotenzaPrelevata(0.208);
 
-        new CalcoloFatturaService().calcola(fs, pun);
+        return fs;
+    }
 
-        // pagina 3: totali
-        assertEquals(16.9683, fs.getTotaleMateria(), DELTA);
-        assertEquals(3.7292, fs.getTotaleTrasporto(), DELTA);
-        assertEquals(2.4453, fs.getTotaleOneri(), DELTA);
-        assertEquals(0.2948, fs.getTotaleImposte(), DELTA);
-        assertEquals(23.4376, fs.getTotaleImponibile(), DELTA);
-        assertEquals(5.1563, fs.getTotaleIva(), DELTA);
-        // pagina 2: scontrino
-        assertEquals(0.208, fs.getPotenzaOneri(), DELTA);
-        assertEquals(7.3505, fs.getSpesaVendita(), DELTA);
-        assertEquals(1.1566, fs.getSpesaRete(), DELTA);
-        assertEquals(11.8276, fs.getSpesaFissaVendita(), DELTA);
-        assertEquals(1.9208, fs.getSpesaFissaRete(), DELTA);
-        assertEquals(0.8874, fs.getSpesaPotenzaRete(), DELTA);
-        // nell'esempio la media era calcolata da importi arrotondati a 4 decimali (8,5071 / 23,584)
-        assertEquals(0.360715, fs.getSpesaMedia(), 0.00001);
-        assertEquals(33, fs.getVoci().size());
+    private static Pun punDiEsempio() {
+        Pun pun = new Pun();
+        pun.setF1(0.238375);
+        pun.setF2(0.258289);
+        pun.setF3(0.221494);
+
+        return pun;
     }
 }

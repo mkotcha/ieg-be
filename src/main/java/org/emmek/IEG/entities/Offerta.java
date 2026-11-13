@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.emmek.IEG.enums.ModalitaProgrammazione;
 import org.emmek.IEG.enums.TipoOfferta;
 
 import java.time.LocalDate;
@@ -58,6 +59,11 @@ public class Offerta {
 
     @Column(name = "ocv")
     private Double ocv;
+
+    // come si applica ocv: €/kWh sul consumo con perdite (OCV) o percentuale sulla spesa energia (CLASSIC)
+    @Column(name = "modalita_programmazione")
+    @Enumerated(EnumType.STRING)
+    private ModalitaProgrammazione modalitaProgrammazione = ModalitaProgrammazione.OCV;
 
     @Column(name = "ocf")
     private Double ocf;
