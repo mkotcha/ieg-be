@@ -2,6 +2,7 @@ package org.emmek.IEG.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.emmek.IEG.entities.*;
+import org.emmek.IEG.repositories.AltraPartitaRepository;
 import org.emmek.IEG.repositories.FatturaRepository;
 import org.emmek.IEG.repositories.FatturaSingolaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,9 @@ public class FatturaService {
 
     @Autowired
     private CalcoloFatturaService calcoloFatturaService;
+
+    @Autowired
+    private AltraPartitaRepository altraPartitaRepository;
 
 
     public Fattura newfattura(Cliente cliente, Integer mese, Integer anno) throws IOException {
@@ -104,7 +108,8 @@ public class FatturaService {
             // PUN specifico del POD se presente, altrimenti quello generico; non serve per le offerte a prezzo fisso
             Offerta offerta = fornitura.getOfferta();
             Pun pun = offerta != null && offerta.isPun() ? punService.getPun(fornitura, mese, anno) : null;
-            calcoloFatturaService.calcola(fatturaSingola, pun);
+            calcoloFatturaService.calcola(fatturaSingola, pun,
+                    altraPartitaRepository.findByFornituraAndMeseAndAnnoOrderById(fornitura, mese, anno));
             fatturaSingolaRepository.save(fatturaSingola);
             fattura.addFatturaSingola(fatturaSingola);
         });

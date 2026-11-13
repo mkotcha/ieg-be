@@ -58,6 +58,23 @@ class CalcoloFatturaServiceTest {
         assertEquals(1.0, ocv.getQuantita());
     }
 
+    @Test
+    void altrePartiteIvaInclusaFuoriDallImponibile() {
+        FatturaSingola fs = fatturaDiEsempio();
+        AltraPartita partita = new AltraPartita();
+        partita.setVoce("Corrispettivo Morosità Energia");
+        partita.setImporto(332.28);
+        new CalcoloFatturaService().calcola(fs, punDiEsempio(), List.of(partita));
+
+        assertEquals(332.28, fs.getTotalePartite(), DELTA);
+        // imponibile e iva come senza partite
+        assertEquals(23.4376, fs.getTotaleImponibile(), DELTA);
+        assertEquals(5.1563, fs.getTotaleIva(), DELTA);
+        VoceFatturaSingola voce = fs.getVoci().get(fs.getVoci().size() - 1);
+        assertEquals("Corrispettivo Morosità Energia", voce.getDescrizione());
+        assertEquals(0.0, voce.getIva());
+    }
+
     private static FatturaSingola fatturaDiEsempio() {
         Offerta offerta = new Offerta();
         offerta.setPun(true);

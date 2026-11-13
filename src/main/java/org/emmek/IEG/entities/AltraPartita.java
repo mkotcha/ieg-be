@@ -6,21 +6,30 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Importo da addebitare (o accreditare se negativo) su una fornitura nella fattura di un mese,
+ * es. corrispettivo morosità o svolgimento pratica.
+ * L'importo è già comprensivo di iva: non entra nell'imponibile e si somma solo al totale da pagare.
+ */
 @Entity
-@Table(name = "cmor")
+@Table(name = "altre_partite")
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
-public class Cmor {
+public class AltraPartita {
     @Id
-//    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "fornitura_pod", nullable = false)
     private Fornitura fornitura;
 
+    @Column(name = "voce", nullable = false)
+    private String voce;
+
+    // iva inclusa
     @Column(name = "importo", nullable = false)
     private Double importo;
 

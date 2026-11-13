@@ -34,6 +34,14 @@ public class CalcoloFatturaService {
     private static final double ACCISE_DEFAULT = 0.0125;
 
     public void calcola(FatturaSingola fs, Pun pun) {
+        calcola(fs, pun, List.of());
+    }
+
+    /**
+     * @param pun          PUN da applicare (serve solo per le offerte a PUN)
+     * @param altrePartite importi del mese già comprensivi di iva: fuori dall'imponibile, solo nel totale da pagare
+     */
+    public void calcola(FatturaSingola fs, Pun pun, List<AltraPartita> altrePartite) {
         Fornitura fornitura = fs.getFornitura();
         Offerta offerta = fornitura.getOfferta();
         if (offerta == null) throw new RuntimeException("Fornitura " + fornitura.getId() + " senza offerta");
@@ -112,6 +120,12 @@ public class CalcoloFatturaService {
         v.add("qp_arim", "Quota Potenza - Oneri di sistema ARIM", ONERI, POTENZA_RETE, KW, nvl(oneri.getQpArim()), potenza);
         // ---- imposte
         v.add("addizionale_erariale", "Addizionale Erariale", IMPOSTE, null, KWH, accise, consumo);
+        // ---- altre partite: già comprensive di iva
+        int n = 0;
+        for (AltraPartita partita : altrePartite) {
+            v.add("altra_partita_" + (++n), partita.getVoce(), ALTRE_PARTITE, null, EURO, nvl(partita.getImporto()), 1);
+            fs.getVoci().get(fs.getVoci().size() - 1).setIva(0.0);
+        }
 
         // ---- totali
         fs.setTotaleMateria(v.totale(MATERIA));
@@ -119,7 +133,7 @@ public class CalcoloFatturaService {
         fs.setTotaleOneri(v.totale(ONERI));
         fs.setTotaleImposte(v.totale(IMPOSTE));
         fs.setTotalePartite(v.totale(ALTRE_PARTITE));
-        // le altre partite non sono soggette a iva, come nel template
+        // le altre partite sono già comprensive di iva: escluse dall'imponibile e dal calcolo dell'iva
         fs.setTotaleImponibile(fs.getTotaleMateria() + fs.getTotaleTrasporto() + fs.getTotaleOneri() + fs.getTotaleImposte());
         fs.setTotaleIva(fs.getTotaleImponibile() * iva);
 

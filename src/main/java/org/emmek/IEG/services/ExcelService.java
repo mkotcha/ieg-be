@@ -5,6 +5,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.emmek.IEG.entities.*;
+import org.emmek.IEG.enums.SezioneFattura;
 import org.emmek.IEG.enums.TipoLettura;
 import org.emmek.IEG.repositories.FatturaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -191,6 +192,7 @@ public class ExcelService {
             writeCell(workbook, s, "tipo_misuratore", capitalize(fornitura.getTipoContatore().name()));
             writeCell(workbook, s, "potenza_impegnata", fs.getPotenzaOneri());
             for (VoceFatturaSingola voce : fs.getVoci()) {
+                if (voce.getSezione() == SezioneFattura.ALTRE_PARTITE) continue; // riga unica, scritta sotto
                 String nome = "voce_" + voce.getCodice();
                 if (findCell(workbook, s, nome) == null) continue;
                 setValue(findCell(workbook, s, nome, COL_DESCRIZIONE), voce.getDescrizione());
@@ -206,6 +208,7 @@ public class ExcelService {
             writeCell(workbook, s, "totale_trasporto", fs.getTotaleTrasporto());
             writeCell(workbook, s, "totale_oneri", fs.getTotaleOneri());
             writeCell(workbook, s, "totale_accise", fs.getTotaleImposte());
+            writeCell(workbook, s, "altre_partite_1", altrePartite(fs));
             writeCell(workbook, s, "totale_partite", fs.getTotalePartite());
             writeCell(workbook, s, "aliquota_iva", fornitura.getIva() / 100);
             writeCell(workbook, s, "imponibile", fs.getTotaleImponibile());
@@ -248,7 +251,8 @@ public class ExcelService {
             writeCell(workbook, s, "iva", nvl(fs.getTotaleImposte()) + nvl(fs.getTotaleIva()));
             writeCell(workbook, s, "totale_bolletta", totaleBolletta);
             writeCell(workbook, s, "totale_da_pagare", totaleBolletta + nvl(fs.getTotalePartite()));
-            if (nvl(fs.getTotalePartite()) != 0) {
+            if (!altrePartite(fs).isEmpty()) {
+                writeCell(workbook, s, "altre_partite_01", altrePartite(fs));
                 writeCell(workbook, s, "altre_partite_imp_01", fs.getTotalePartite());
             }
             // box dell'offerta
@@ -391,6 +395,16 @@ public class ExcelService {
     // ------------------------------------------------------------------
     //  utilità
     // ------------------------------------------------------------------
+
+    /**
+     * Descrizione delle altre partite della fornitura (nel template c'è una sola riga).
+     */
+    private static String altrePartite(FatturaSingola fs) {
+        return fs.getVoci().stream()
+                .filter(v -> v.getSezione() == SezioneFattura.ALTRE_PARTITE)
+                .map(VoceFatturaSingola::getDescrizione)
+                .collect(java.util.stream.Collectors.joining(" - "));
+    }
 
     private static String codiceCliente(Cliente cliente) {
         return "2050" + cliente.getId();
