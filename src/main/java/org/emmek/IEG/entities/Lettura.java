@@ -40,6 +40,7 @@ public class Lettura {
     @Column(name = "data_lettura", nullable = false)
     private LocalDate dataLettura;
 
+    // P = periodica, S = switching, V = voltura, T = prestazione tecnica (specifica tracciati misure)
     private String raccolta;
 
     @Column(name = "tipo_dato")
@@ -106,4 +107,14 @@ public class Lettura {
     @JsonIgnore
     private List<FatturaSingola> fattureSingole;
 
+
+    public static final String RACCOLTA_SWITCH = "S";
+
+    /**
+     * Lettura di switch (Raccolta = "S", flussi SNM/SNM2G): è datata il giorno prima della data di switch.
+     */
+    @JsonIgnore
+    public boolean isSwitch() {
+        return RACCOLTA_SWITCH.equals(raccolta);
+    }
 }

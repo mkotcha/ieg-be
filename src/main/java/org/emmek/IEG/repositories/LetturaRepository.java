@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface LetturaRepository extends JpaRepository<Lettura, Long> {
 
@@ -21,4 +22,7 @@ public interface LetturaRepository extends JpaRepository<Lettura, Long> {
     int countByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(Fornitura fornitura, LocalDate from, LocalDate to);
 
     List<Lettura> findByFornituraAndDataLettura(Fornitura fornitura, LocalDate dataLettura);
+
+    // lettura di switch: Raccolta = "S" nei flussi SNM/SNM2G
+    Optional<Lettura> findFirstByFornituraAndRaccoltaAndDataLetturaBetweenOrderByDataLetturaDesc(Fornitura fornitura, String raccolta, LocalDate from, LocalDate to);
 }

@@ -75,9 +75,13 @@ Standard layered Spring MVC structure under `src/main/java/org/emmek/IEG/`:
 ### Meter reading ingestion flow
 
 `LettureController.uploadFlussi` → `LetturaService.uploadFlussi`: accepts a zip upload, recursively extracts nested
-zips, then parses every `*_PDO*` / `*_PNO*` / `*_SNM2G*` XML file found under `data/uploads` via `JaxbParser`, matching
+zips, then parses every `*_PDO*` / `*_PNO*` / `*_SNM*` XML file found under `data/uploads` via `JaxbParser`, matching
 each `DatiPod` to a `Fornitura` by POD code and upserting a `Lettura` for that POD/date (overwrites if one already
-exists for the same day). This is a heavy, `ADMIN`-only, synchronous operation — errors per-file/per-record are logged
+exists for the same day, except that a switch reading is never overwritten by a periodic one). Flow format spec and
+examples: `data/ST_Standard_Tracciati_Misure_v2.0/`. Switch readings come from `SNM`/`SNM2G` flows, are dated
+`DataMisura` = the day before the switch date (`DataPrest`; when `DataMisura` is present it always gives the reading
+date, even if the `Ea` curve is there), and are stored with `raccolta = "S"`
+(`Lettura.isSwitch()`; set from the flow code too, since `Raccolta` in those flows isn't always "S"). This is a heavy, `ADMIN`-only, synchronous operation — errors per-file/per-record are logged
 and skipped rather than failing the whole batch.
 
 ### Invoicing flow
@@ -89,8 +93,9 @@ the consumption month):
    the invoice is overwritten (its `FatturaSingola` rows are deleted first).
 2. One `FatturaSingola` per `Fornitura` of the client, with `Oneri` (by BTA/trimestre) and `Dispacciamento`.
 3. `LetturaService.getLetture`: readings from the `letturaFinale` date of the previous month's `FatturaSingola` to the
-   last day of the month. Without a previous invoice the period starts at the switch date for new clients (switch in
-   the billed month), otherwise at the last day of the previous month (to include the month-end reading). `getConsumi` computes consumption over all readings, multiplied
+   last day of the month. Without a previous invoice (first invoice) it starts at the switch reading if one falls in
+   the period, else at the last day of the previous month (to include the month-end reading). `Fornitura.dataSwitch`
+   is entered by hand and unreliable: don't base logic on it. `getConsumi` computes consumption over all readings, multiplied
    by the meter constants (`ka` active, `kr` reactive, `kp` power); losses are 10% per band. The first and last
    readings are stored on the `FatturaSingola` (`letturaIniziale`/`letturaFinale`); `consumoTotVerifica` (last − first)
    is a cross-check that logs a warning when it differs. TODO: meter replacement readings (`TipoLettura.CAMBIO`).

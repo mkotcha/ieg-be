@@ -89,12 +89,12 @@ public class LetturaService {
                 if (file.isDirectory()) {
                     processXmlFilesRecursively(file);
                 } else if (file.getName().toLowerCase().endsWith(".xml") &&
-                        (file.getName().contains("_PDO") || file.getName().contains("_PNO") || file.getName().contains("_SNM2G"))) {
+                        (file.getName().contains("_PDO") || file.getName().contains("_PNO") || file.getName().contains("_SNM"))) {
                     log.debug("Processing XML file: {}", file.getAbsolutePath());
                     try {
                         FlussoMisure flussi = jaxbParser.parseXml(file.getAbsolutePath());
                         for (DatiPod datiPod : flussi.datiPod) {
-                            parseDatiPod(datiPod);
+                            parseDatiPod(datiPod, isFlussoSwitch(flussi.codFlusso));
                         }
                     } catch (Exception e) {
                         log.error("Errore durante il parsing del file XML: {}", file.getName());
@@ -123,7 +123,16 @@ public class LetturaService {
         }
     }
 
-    public void parseDatiPod(DatiPod datiPod) {
+    /**
+     * Flussi di switching (SNM, SNM2G) e relative rettifiche (RSN, RSN2G).
+     */
+    private static boolean isFlussoSwitch(String codFlusso) {
+        return codFlusso != null && (codFlusso.startsWith("SNM") || codFlusso.startsWith("RSN"));
+    }
+
+    public void parseDatiPod(DatiPod datiPod, boolean switching) {
+        // le misure di un flusso di switching sono letture di switch anche se Raccolta non vale "S"
+        if (switching && datiPod.misura != null) datiPod.misura.raccolta = Lettura.RACCOLTA_SWITCH;
         Lettura lettura;
         Fornitura fornitura = null;
         try {
@@ -135,28 +144,26 @@ public class LetturaService {
             int mese;
             int anno;
 
-            if (datiPod.misura.ea != null) {
-                giorno = Integer.parseInt(datiPod.misura.ea.get(0).valore);
+            if (datiPod.dataMisura != null) {
+                // flussi di switch, voltura e prestazioni tecniche: la data della misura è DataMisura
+                // (per lo switch il giorno prima della data di switch), anche se è presente la curva Ea
+                giorno = Integer.parseInt(datiPod.dataMisura.substring(0, 2));
+                mese = Integer.parseInt(datiPod.dataMisura.substring(3, 5));
+                anno = Integer.parseInt(datiPod.dataMisura.substring(6, 10));
             } else {
-                if (datiPod.dataMisura != null) {
-                    giorno = Integer.parseInt(datiPod.dataMisura.substring(0, 2));
+                // flussi periodici: giorno dalla curva Ea, mese e anno da MeseAnno
+                if (datiPod.misura.ea != null) {
+                    giorno = Integer.parseInt(datiPod.misura.ea.get(0).valore);
                 } else {
                     giorno = Integer.parseInt(datiPod.dataPrest.substring(0, 2));
                 }
-            }
-            if (datiPod.meseAnno != null) {
-                String meseAnno = datiPod.meseAnno;
-                mese = Integer.parseInt(meseAnno.substring(0, 2));
-                anno = Integer.parseInt(meseAnno.substring(3, 7));
-            } else {
-                String dataMisura;
-                if (datiPod.dataMisura != null) {
-                    dataMisura = datiPod.dataMisura;
+                if (datiPod.meseAnno != null) {
+                    mese = Integer.parseInt(datiPod.meseAnno.substring(0, 2));
+                    anno = Integer.parseInt(datiPod.meseAnno.substring(3, 7));
                 } else {
-                    dataMisura = datiPod.dataPrest;
+                    mese = Integer.parseInt(datiPod.dataPrest.substring(3, 5));
+                    anno = Integer.parseInt(datiPod.dataPrest.substring(6, 10));
                 }
-                mese = Integer.parseInt(dataMisura.substring(3, 5));
-                anno = Integer.parseInt(dataMisura.substring(6, 10));
             }
 
             //  && datiPod.misura.validato.equals("S")
@@ -173,8 +180,10 @@ public class LetturaService {
                     lettura.setFornitura(fornitura);
                     lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
                     log.info("inserisco -------> lettura pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
-                } else {
-//                    log.info("sovrascrivo lettura per il pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
+                } else if (lettura.isSwitch() && !Lettura.RACCOLTA_SWITCH.equals(datiPod.misura.raccolta)) {
+                    // la lettura di switch non viene sovrascritta da una lettura periodica dello stesso giorno
+                    log.debug("lettura di switch del pod {} del {}/{}/{} mantenuta", datiPod.pod, giorno, mese, anno);
+                    return;
                 }
 
                 switch (datiPod.datiPdp.trattamento) {
@@ -186,6 +195,7 @@ public class LetturaService {
                 switch (datiPod.misura.tipoDato) {
                     case "E" -> lettura.setTipoLettura(TipoLettura.REALE);
                     case "S" -> lettura.setTipoLettura(TipoLettura.STIMA);
+                    case "A" -> lettura.setTipoLettura(TipoLettura.AUTOLETTURA);
                 }
                 lettura.setRaccolta(datiPod.misura.raccolta);
                 lettura.setTipoDato(datiPod.misura.tipoDato);
@@ -329,16 +339,19 @@ public class LetturaService {
         LocalDate to;
         LocalDate primoDelMese = LocalDate.of(anno, mese, 1);
         LocalDate mesePrecedente = primoDelMese.minusMonths(1);
-        // inizio periodo: lettura finale della fattura del mese precedente; se non c'è, la lettura di switch per
-        // i clienti nuovi (switch nel mese), altrimenti la lettura di fine mese precedente
+        to = primoDelMese.withDayOfMonth(primoDelMese.lengthOfMonth());
+        LocalDate fineMesePrecedente = primoDelMese.minusDays(1);
+        // inizio periodo: lettura finale della fattura del mese precedente; se non c'è (prima fattura):
+        // - la lettura di switch (Raccolta = S) se cade nel periodo: è datata il giorno prima dello switch
+        // - altrimenti la lettura di fine mese precedente (per un cliente nuovo le letture precedenti allo switch
+        //   non arrivano, quindi si parte comunque dalla prima lettura disponibile)
+        // la data di switch della fornitura non si usa: è inserita a mano e non è affidabile
         from = fatturaSingolaRepository
                 .findDataUltimaLetturaFatturata(fornitura, mesePrecedente.getMonthValue(), mesePrecedente.getYear())
-                .orElseGet(() -> {
-                    LocalDate dataSwitch = fornitura.getDataSwitch();
-                    if (dataSwitch != null && !dataSwitch.isBefore(primoDelMese)) return dataSwitch;
-                    return primoDelMese.minusDays(1);
-                });
-        to = primoDelMese.withDayOfMonth(primoDelMese.lengthOfMonth());
+                .orElseGet(() -> letturaRepository
+                        .findFirstByFornituraAndRaccoltaAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, Lettura.RACCOLTA_SWITCH, fineMesePrecedente, to)
+                        .map(Lettura::getDataLettura)
+                        .orElse(fineMesePrecedente));
         List<Lettura> letture = letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
         if (letture.size() < 2)
             throw new RuntimeException(fornitura.getId() + " non ci sono abbastanza letture per calcolare il consumo per il mese " + mese + " dell'anno " + anno);
