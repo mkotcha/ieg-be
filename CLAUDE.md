@@ -134,9 +134,11 @@ detail) maps both sides onto `VoceConfronto`: our lines by `VoceFatturaSingola.c
 supplier's with the rules in table `mappature_voci_fornitore` (key = `Cod Tariffa`, or `Nr Articolo` when the tariff is
 empty; `*` suffix = prefix; `perdite` for "Perdite ..." rows; `quantita` = the row counts toward the quantity). Unmapped
 tariffs end up in `NON_MAPPATA` and are listed by `GET /api/fatture-fornitore/mappature/non-mappate`; new rules go in
-via the API and in the seed in `schema.sql`. Pass-through voci (network, system charges, excise) should match;
-the margin comes from energy, commercialisation and dispatching. `COSTI_IEG` (prepayment, late fees, stamp duty, REMIT)
-are supplier charges to IEG not tied to a client: excluded per supply, totalled in the monthly summary.
+via the API and in the seed in `schema.sql`. Pass-through voci (network, system charges, dispatching, reactive) should
+match; the margin comes from energy, commercialisation and our capacity mark-up (`MAGGIORAZIONE_CAPACITA`). Excise is
+paid by IEG directly (the supplier bills it at 0): neither pass-through nor margin. `COSTI_IEG` (prepayment, late fees,
+stamp duty, REMIT) are supplier charges to IEG not tied to a client: excluded per supply, totalled in the monthly
+summary.
 
 **Templates** (`template/pagina_1.xlsx` riepilogo, `pagina_2.xlsx` scontrino, `pagina_3.xlsx` dettaglio) contain **no
 formulas**: Java computes every value and `ExcelService` only writes into named cells. Detail lines are located by the
