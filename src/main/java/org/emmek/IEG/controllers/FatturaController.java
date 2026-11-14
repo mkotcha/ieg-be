@@ -5,6 +5,8 @@ import org.emmek.IEG.entities.Fattura;
 import org.emmek.IEG.enums.TipoLavoro;
 import org.emmek.IEG.model.Lavoro;
 import org.emmek.IEG.services.LavoroService;
+import org.emmek.IEG.repositories.FatturaRepository;
+import org.emmek.IEG.payloads.FatturaElencoDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.emmek.IEG.payloads.ConfrontoFatturaDTO;
@@ -50,6 +52,9 @@ public class FatturaController {
     @Autowired
     private LavoroService lavoroService;
 
+    @Autowired
+    private FatturaRepository fatturaRepository;
+
     /**
      * Avvia in background la generazione delle fatture del mese di consumo indicato per tutti i clienti attivi e
      * restituisce subito il lavoro, da seguire con GET /api/lavori/{id}: a lavoro completato il risultato è la
@@ -64,6 +69,14 @@ public class FatturaController {
                 lavoro -> generazioneFattureService.generaFatture(mese, anno, lavoro));
     }
 
+
+    /**
+     * Tutte le fatture in forma ridotta (senza forniture e voci), dalla più recente alla più vecchia.
+     */
+    @GetMapping("/elenco")
+    public List<FatturaElencoDTO> getElenco() {
+        return fatturaRepository.findElenco();
+    }
 
     @GetMapping("")
     public Iterable<Fattura> getFatture() {
