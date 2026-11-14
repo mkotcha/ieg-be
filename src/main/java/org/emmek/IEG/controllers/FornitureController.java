@@ -53,6 +53,13 @@ public class FornitureController {
         return fornituraService.updateFornitura(id, fornitura, cliente);
     }
 
+    // associa alla fornitura un'offerta esistente, senza toccare gli altri dati
+    @PutMapping("{id}/offerta")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Fornitura setOfferta(@PathVariable String id, @RequestParam long offertaId) {
+        return fornituraService.setOfferta(id, offertaId);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
     public void delete(@PathVariable String id) {

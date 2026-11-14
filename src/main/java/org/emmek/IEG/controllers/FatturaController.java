@@ -10,6 +10,7 @@ import org.emmek.IEG.services.FatturaService;
 import org.emmek.IEG.services.GenerazioneFattureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.List;
 
 @RestController
@@ -75,46 +78,32 @@ public class FatturaController {
     @GetMapping(value = "/{numeroFattura}/pdf")
     public ResponseEntity<InputStreamResource> getFatturaPdf(@PathVariable String numeroFattura) throws IOException {
         Fattura fattura = fatturaService.findByNumeroFattura(numeroFattura);
-
-        String src = fattura.getPdf();
-        log.debug("PDF to download: {}", src);
-        InputStream in = new FileInputStream(src);
-        InputStreamResource resource = new InputStreamResource(in);
-
-        String originalFilename = fattura.getNumeroFattura() + ".pdf";
-
-        HttpHeaders headers = new HttpHeaders();
-//        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + originalFilename);
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + originalFilename);
-        headers.add("Access-Control-Expose-Headers", "X-Filename");
-        headers.add("X-Filename", originalFilename); // Add filename in a separate header
-
-        return ResponseEntity.ok()
-                .headers(headers)
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(resource);
+        return download(fattura.getPdf(), MediaType.APPLICATION_PDF);
     }
 
     @GetMapping(value = "/{numeroFattura}/xlsx")
     public ResponseEntity<InputStreamResource> getFatturaXlsx(@PathVariable String numeroFattura) throws IOException {
         Fattura fattura = fatturaService.findByNumeroFattura(numeroFattura);
+        return download(fattura.getXlsx(), MediaType.APPLICATION_OCTET_STREAM);
+    }
 
-        String src = fattura.getXlsx();
-        log.debug("XLSX to download: {}", src);
-        InputStream in = new FileInputStream(src);
-        InputStreamResource resource = new InputStreamResource(in);
-
-        String originalFilename = fattura.getNumeroFattura() + ".xlsx";
+    /**
+     * File della fattura con il nome con cui è salvato, "<numero> - <ragione sociale>" come nelle macro.
+     * X-Filename è url-encoded (la ragione sociale può avere spazi e caratteri non ASCII): il fe lo decodifica.
+     */
+    private ResponseEntity<InputStreamResource> download(String src, MediaType tipo) throws IOException {
+        log.debug("File da scaricare: {}", src);
+        String nomeFile = Path.of(src).getFileName().toString();
+        InputStreamResource resource = new InputStreamResource(new FileInputStream(src));
 
         HttpHeaders headers = new HttpHeaders();
-
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=" + originalFilename);
+        headers.setContentDisposition(ContentDisposition.inline().filename(nomeFile, StandardCharsets.UTF_8).build());
         headers.add("Access-Control-Expose-Headers", "X-Filename");
-        headers.add("X-Filename", originalFilename); // Add filename in a separate header
+        headers.add("X-Filename", URLEncoder.encode(nomeFile, StandardCharsets.UTF_8).replace("+", "%20"));
 
         return ResponseEntity.ok()
                 .headers(headers)
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(tipo)
                 .body(resource);
     }
 }

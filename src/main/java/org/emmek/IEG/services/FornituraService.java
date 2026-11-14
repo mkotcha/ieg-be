@@ -87,6 +87,15 @@ public class FornituraService {
     }
 
     /**
+     * Cambia l'offerta della fornitura; vale dalle fatture calcolate da ora in poi.
+     */
+    public Fornitura setOfferta(String pod, long offertaId) {
+        Fornitura fornitura = findById(pod);
+        fornitura.setOfferta(offertaService.findById(offertaId));
+        return fornituraRepository.save(fornitura);
+    }
+
+    /**
      * Importo opzionale, anche con la virgola decimale; vuoto o 0 = null.
      */
     private static Double parseImporto(String valore) {
