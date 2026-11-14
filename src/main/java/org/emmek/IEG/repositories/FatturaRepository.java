@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface FatturaRepository extends JpaRepository<Fattura, Long> {
     List<Fattura> findByCliente(Cliente cliente);
 
+    List<Fattura> findByMeseAndAnnoOrderByNumeroFattura(int mese, int anno);
+
     boolean existsByNumeroFattura(String numeroFattura);
 
     Optional<Fattura> findByNumeroFattura(String numeroFattura);

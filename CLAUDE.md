@@ -120,6 +120,24 @@ one transaction per client, an error doesn't stop the others), then all xlsx/pdf
 `componiFattura.py` run with a single Excel instance (parallel Excel instances slow each other down and crash).
 Returns a per-client result (`EsitoFatturaDTO`).
 
+### Supplier invoices and comparison
+
+The wholesale supplier bills IEG monthly with one invoice covering all PODs; its summary csv
+(`Fatt_<numero>_<data>.csv[.zip]`: `;`-separated, UTF-8, comma decimals, one row per charge per POD) is imported with
+`POST /api/fatture-fornitore/upload` (`FatturaFornitoreService`) into `fatture_fornitore` / `voci_fatture_fornitore`.
+Re-importing the same invoice replaces its rows. Each row's competence month is the month of `Inizio Periodo`, so
+adjustments (`Tipo Ricalcolo`: reversal of the estimate, articles `*_A`, plus re-billing on actual readings) arriving
+in later invoices add up to the month they refer to.
+
+`ConfrontoFatturaService` (`GET /api/fatture/confronto?mese=&anno=` summary, `GET /api/fatture/{numero}/confronto`
+detail) maps both sides onto `VoceConfronto`: our lines by `VoceFatturaSingola.codice` (map in the service), the
+supplier's with the rules in table `mappature_voci_fornitore` (key = `Cod Tariffa`, or `Nr Articolo` when the tariff is
+empty; `*` suffix = prefix; `perdite` for "Perdite ..." rows; `quantita` = the row counts toward the quantity). Unmapped
+tariffs end up in `NON_MAPPATA` and are listed by `GET /api/fatture-fornitore/mappature/non-mappate`; new rules go in
+via the API and in the seed in `schema.sql`. Pass-through voci (network, system charges, excise) should match;
+the margin comes from energy, commercialisation and dispatching. `COSTI_IEG` (prepayment, late fees, stamp duty, REMIT)
+are supplier charges to IEG not tied to a client: excluded per supply, totalled in the monthly summary.
+
 **Templates** (`template/pagina_1.xlsx` riepilogo, `pagina_2.xlsx` scontrino, `pagina_3.xlsx` dettaglio) contain **no
 formulas**: Java computes every value and `ExcelService` only writes into named cells. Detail lines are located by the
 named cell `voce_<codice>` (column A of the row; columns G–M hold dal, al, unità, unitario, quantità, importo, iva).

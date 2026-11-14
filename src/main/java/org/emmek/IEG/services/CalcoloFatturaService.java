@@ -119,7 +119,8 @@ public class CalcoloFatturaService {
         v.add("qe_asos", "Quota Energia - Oneri di sistema ASOS", ONERI, RETE, KWH, nvl(oneri.getQeAsos()), consumo);
         v.add("qf_asos", "Quota Fissa - Oneri di sistema ASOS", ONERI, FISSA_RETE, PDP, nvl(oneri.getQfAsos()), 1);
         v.add("qp_asos", "Quota Potenza - Oneri di sistema ASOS", ONERI, POTENZA_RETE, KW, nvl(oneri.getQpAsos()), potenza);
-        v.add("qe_arim", "Quota Energia - Oneri di sistema ARIM", ONERI, RETE, KWH, nvl(oneri.getQeArim()), consumoConPerdite);
+        // sul consumo senza perdite, come il fornitore
+        v.add("qe_arim", "Quota Energia - Oneri di sistema ARIM", ONERI, RETE, KWH, nvl(oneri.getQeArim()), consumo);
         v.add("qf_arim", "Quota Fissa - Oneri di sistema ARIM", ONERI, FISSA_RETE, PDP, nvl(oneri.getQfArim()), 1);
         v.add("qp_arim", "Quota Potenza - Oneri di sistema ARIM", ONERI, POTENZA_RETE, KW, nvl(oneri.getQpArim()), potenza);
         // ---- imposte

@@ -2,7 +2,10 @@ package org.emmek.IEG.controllers;
 
 import lombok.extern.slf4j.Slf4j;
 import org.emmek.IEG.entities.Fattura;
+import org.emmek.IEG.payloads.ConfrontoFatturaDTO;
+import org.emmek.IEG.payloads.ConfrontoMeseDTO;
 import org.emmek.IEG.payloads.EsitoFatturaDTO;
+import org.emmek.IEG.services.ConfrontoFatturaService;
 import org.emmek.IEG.services.FatturaService;
 import org.emmek.IEG.services.GenerazioneFattureService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +36,9 @@ public class FatturaController {
     @Autowired
     private GenerazioneFattureService generazioneFattureService;
 
+    @Autowired
+    private ConfrontoFatturaService confrontoFatturaService;
+
     /**
      * Genera in parallelo le fatture del mese di consumo indicato per tutti i clienti attivi.
      * Restituisce l'esito per cliente; un errore su un cliente non blocca gli altri.
@@ -47,6 +53,23 @@ public class FatturaController {
     @GetMapping("")
     public Iterable<Fattura> getFatture() {
         return fatturaService.findAll();
+    }
+
+    /**
+     * Confronto di tutte le fatture emesse per il mese di consumo con le fatture del fornitore (riepilogo per
+     * fattura, senza il dettaglio per fornitura).
+     */
+    @GetMapping("/confronto")
+    public ConfrontoMeseDTO confrontoMese(@RequestParam int mese, @RequestParam int anno) {
+        return confrontoFatturaService.confrontaMese(mese, anno);
+    }
+
+    /**
+     * Confronto di dettaglio di una fattura con le righe del fornitore, per fornitura e voce.
+     */
+    @GetMapping("/{numeroFattura}/confronto")
+    public ConfrontoFatturaDTO confronto(@PathVariable String numeroFattura) {
+        return confrontoFatturaService.confronta(numeroFattura);
     }
 
     @GetMapping(value = "/{numeroFattura}/pdf")

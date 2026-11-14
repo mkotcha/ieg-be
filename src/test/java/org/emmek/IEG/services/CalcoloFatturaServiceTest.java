@@ -12,11 +12,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Confronta il calcolo con la fattura di esempio AUEE202611007 (CALYPSO, POD IT001E04318295, ottobre 2026)
- * generata dalle macro VBA.
+ * generata dalle macro VBA. Le macro calcolavano la quota energia ARIM su consumo + perdite, ora è sul solo consumo
+ * come fa il fornitore: dai valori della fattura di esempio si toglie ARIM_SULLE_PERDITE.
  */
 class CalcoloFatturaServiceTest {
 
     private static final double DELTA = 0.0001;
+    // quota energia ARIM (0,001614 €/kWh) sulle perdite (0,7215 + 0,6061 + 1,0308 kWh), presente nella fattura di esempio
+    private static final double ARIM_SULLE_PERDITE = 0.001614 * 2.3584;
 
     @Test
     void calcolaComeFatturaDiEsempio() {
@@ -26,19 +29,19 @@ class CalcoloFatturaServiceTest {
         // pagina 3: totali
         assertEquals(16.9683, fs.getTotaleMateria(), DELTA);
         assertEquals(3.7292, fs.getTotaleTrasporto(), DELTA);
-        assertEquals(2.4453, fs.getTotaleOneri(), DELTA);
+        assertEquals(2.4453 - ARIM_SULLE_PERDITE, fs.getTotaleOneri(), DELTA);
         assertEquals(0.2948, fs.getTotaleImposte(), DELTA);
-        assertEquals(23.4376, fs.getTotaleImponibile(), DELTA);
-        assertEquals(5.1563, fs.getTotaleIva(), DELTA);
+        assertEquals(23.4376 - ARIM_SULLE_PERDITE, fs.getTotaleImponibile(), DELTA);
+        assertEquals(5.1563 - ARIM_SULLE_PERDITE * 0.22, fs.getTotaleIva(), DELTA);
         // pagina 2: scontrino
         assertEquals(0.208, fs.getPotenzaOneri(), DELTA);
         assertEquals(7.3505, fs.getSpesaVendita(), DELTA);
-        assertEquals(1.1566, fs.getSpesaRete(), DELTA);
+        assertEquals(1.1566 - ARIM_SULLE_PERDITE, fs.getSpesaRete(), DELTA);
         assertEquals(11.8276, fs.getSpesaFissaVendita(), DELTA);
         assertEquals(1.9208, fs.getSpesaFissaRete(), DELTA);
         assertEquals(0.8874, fs.getSpesaPotenzaRete(), DELTA);
         // nell'esempio la media era calcolata da importi arrotondati a 4 decimali (8,5071 / 23,584)
-        assertEquals(0.360715, fs.getSpesaMedia(), 0.00001);
+        assertEquals((8.5071 - ARIM_SULLE_PERDITE) / 23.584, fs.getSpesaMedia(), 0.00001);
         assertEquals(34, fs.getVoci().size());
     }
 
@@ -73,7 +76,7 @@ class CalcoloFatturaServiceTest {
         assertEquals(27.556, voce.getQuantita());
         assertEquals(0.2998, voce.getImporto(), DELTA);
         assertEquals(3.7292 + 0.2998, fs.getTotaleTrasporto(), DELTA);
-        assertEquals(1.1566 + 0.2998, fs.getSpesaRete(), DELTA);
+        assertEquals(1.1566 - ARIM_SULLE_PERDITE + 0.2998, fs.getSpesaRete(), DELTA);
     }
 
     @Test
@@ -124,9 +127,9 @@ class CalcoloFatturaServiceTest {
         new CalcoloFatturaService().calcola(fs, punDiEsempio(), List.of(pratica, morosita));
 
         assertEquals(75.29 + 332.28, fs.getTotalePartite(), DELTA);
-        assertEquals(23.4376 + 75.29, fs.getTotaleImponibile(), DELTA);
-        assertEquals((23.4376 + 75.29) * 0.22, fs.getTotaleIva(), DELTA);
-        assertEquals((23.4376 + 75.29) * 1.22 + 332.28, fs.getTotaleDaPagare(), DELTA);
+        assertEquals(23.4376 - ARIM_SULLE_PERDITE + 75.29, fs.getTotaleImponibile(), DELTA);
+        assertEquals((23.4376 - ARIM_SULLE_PERDITE + 75.29) * 0.22, fs.getTotaleIva(), DELTA);
+        assertEquals((23.4376 - ARIM_SULLE_PERDITE + 75.29) * 1.22 + 332.28, fs.getTotaleDaPagare(), DELTA);
         assertEquals(0.22, voce(fs, "altra_partita_1").getIva());
         assertEquals(0.0, voce(fs, "altra_partita_2").getIva());
     }
@@ -145,8 +148,8 @@ class CalcoloFatturaServiceTest {
 
         assertEquals(332.28, fs.getTotalePartite(), DELTA);
         // imponibile e iva come senza partite
-        assertEquals(23.4376, fs.getTotaleImponibile(), DELTA);
-        assertEquals(5.1563, fs.getTotaleIva(), DELTA);
+        assertEquals(23.4376 - ARIM_SULLE_PERDITE, fs.getTotaleImponibile(), DELTA);
+        assertEquals(5.1563 - ARIM_SULLE_PERDITE * 0.22, fs.getTotaleIva(), DELTA);
         VoceFatturaSingola voce = fs.getVoci().get(fs.getVoci().size() - 1);
         assertEquals("Corrispettivo Morosità Energia", voce.getDescrizione());
         assertEquals(0.0, voce.getIva());
