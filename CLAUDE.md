@@ -104,7 +104,10 @@ the consumption month):
    values (spesa vendita/rete, quote fisse/potenza, prezzi medi) on `FatturaSingola`. Rules: PUN prices or the
    offerta's fixed F1–F3; spread only if `hasSpread` (`Offerta.getSpreadEffettivo`); OCV = `offerta.ocv` €/kWh on
    consumption + losses; power quotas on potenza impegnata if < 16 kW, otherwise on peak power; reactive penalties
-   only for BTA6.
+   only for BTA6 (F1/F2 per band, plus capacitive "immessa" in F3). `AltraPartita` rows of the month (table
+   `altre_partite`, e.g. morosità, pratiche) become `ALTRE_PARTITE` lines: if `esenteIva` (already VAT-inclusive or
+   out of scope, e.g. morosità) they stay out of the imponibile and are only added to `totaleDaPagare`; otherwise they
+   are imponibile and pay the fornitura's VAT rate.
 5. `ExcelService.createFattura` writes `fatture/<anno>/<mese>/<numero> - <ragione sociale>.xlsx` and `.pdf`: each
    page is filled with POI in a temp copy of its template (sheet renamed first, `preparaFattura`), then
    `script/componiFattura.py` merges the sheets and exports the PDF (`componiFatture`, job list in JSON, one Excel

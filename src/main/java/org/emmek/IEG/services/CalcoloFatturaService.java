@@ -41,7 +41,8 @@ public class CalcoloFatturaService {
 
     /**
      * @param pun          PUN da applicare (serve solo per le offerte a PUN)
-     * @param altrePartite importi del mese già comprensivi di iva: fuori dall'imponibile, solo nel totale da pagare
+     * @param altrePartite importi del mese: se esenti iva fuori dall'imponibile e solo nel totale da pagare,
+     *                     altrimenti imponibili e soggetti all'iva della fornitura
      */
     public void calcola(FatturaSingola fs, Pun pun, List<AltraPartita> altrePartite) {
         Fornitura fornitura = fs.getFornitura();
@@ -123,11 +124,18 @@ public class CalcoloFatturaService {
         v.add("qp_arim", "Quota Potenza - Oneri di sistema ARIM", ONERI, POTENZA_RETE, KW, nvl(oneri.getQpArim()), potenza);
         // ---- imposte
         v.add("addizionale_erariale", "Addizionale Erariale", IMPOSTE, null, KWH, accise, consumo);
-        // ---- altre partite: già comprensive di iva
+        // ---- altre partite: le esenti iva (già comprensive di iva) hanno iva 0
         int n = 0;
+        double partiteSoggette = 0;
+        double partiteEsenti = 0;
         for (AltraPartita partita : altrePartite) {
             v.add("altra_partita_" + (++n), partita.getVoce(), ALTRE_PARTITE, null, EURO, nvl(partita.getImporto()), 1);
-            fs.getVoci().get(fs.getVoci().size() - 1).setIva(0.0);
+            if (partita.isEsenteIva()) {
+                fs.getVoci().get(fs.getVoci().size() - 1).setIva(0.0);
+                partiteEsenti += nvl(partita.getImporto());
+            } else {
+                partiteSoggette += nvl(partita.getImporto());
+            }
         }
 
         // ---- totali
@@ -136,9 +144,11 @@ public class CalcoloFatturaService {
         fs.setTotaleOneri(v.totale(ONERI));
         fs.setTotaleImposte(v.totale(IMPOSTE));
         fs.setTotalePartite(v.totale(ALTRE_PARTITE));
-        // le altre partite sono già comprensive di iva: escluse dall'imponibile e dal calcolo dell'iva
-        fs.setTotaleImponibile(fs.getTotaleMateria() + fs.getTotaleTrasporto() + fs.getTotaleOneri() + fs.getTotaleImposte());
+        // le altre partite esenti iva sono escluse dall'imponibile e dal calcolo dell'iva
+        fs.setTotaleImponibile(fs.getTotaleMateria() + fs.getTotaleTrasporto() + fs.getTotaleOneri() + fs.getTotaleImposte()
+                + partiteSoggette);
         fs.setTotaleIva(fs.getTotaleImponibile() * iva);
+        fs.setTotaleDaPagare(fs.getTotaleImponibile() + fs.getTotaleIva() + partiteEsenti);
 
         // ---- scontrino
         fs.setSpesaVendita(v.totale(VENDITA));

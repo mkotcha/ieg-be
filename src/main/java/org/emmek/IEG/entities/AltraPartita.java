@@ -8,8 +8,9 @@ import lombok.Setter;
 
 /**
  * Importo da addebitare (o accreditare se negativo) su una fornitura nella fattura di un mese,
- * es. corrispettivo morosità o svolgimento pratica.
- * L'importo è già comprensivo di iva: non entra nell'imponibile e si somma solo al totale da pagare.
+ * es. corrispettivo morosità, svolgimento pratica, pratica di aumento di potenza.
+ * Se esente iva (importo già comprensivo di iva o fuori campo, es. morosità) non entra nell'imponibile e si somma
+ * solo al totale da pagare; altrimenti l'importo è imponibile e paga l'iva della fornitura.
  */
 @Entity
 @Table(name = "altre_partite")
@@ -29,9 +30,11 @@ public class AltraPartita {
     @Column(name = "voce", nullable = false)
     private String voce;
 
-    // iva inclusa
     @Column(name = "importo", nullable = false)
     private Double importo;
+
+    @Column(name = "esente_iva", nullable = false)
+    private boolean esenteIva = true;
 
     @Column(name = "mese", nullable = false)
     private int mese;

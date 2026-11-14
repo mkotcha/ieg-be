@@ -185,6 +185,11 @@ public class ExcelService {
         writeCell(dettaglio, s, "totale_accise", fs.getTotaleImposte());
         writeCell(dettaglio, s, "altre_partite_1", altrePartite(fs));
         writeCell(dettaglio, s, "totale_partite", fs.getTotalePartite());
+        // aliquota della riga altre partite: 0% se sono tutte esenti iva
+        boolean partiteSoggette = fs.getVoci().stream()
+                .anyMatch(v -> v.getSezione() == SezioneFattura.ALTRE_PARTITE && nvl(v.getIva()) > 0);
+        Cell ivaPartite = findCell(dettaglio, s, "altre_partite_1", COL_IVA);
+        if (ivaPartite != null) setValue(ivaPartite, partiteSoggette ? fornitura.getIva() / 100 : 0.0);
         writeCell(dettaglio, s, "aliquota_iva", fornitura.getIva() / 100);
         writeCell(dettaglio, s, "imponibile", fs.getTotaleImponibile());
         writeCell(dettaglio, s, "totale_iva", fs.getTotaleIva());
@@ -194,7 +199,7 @@ public class ExcelService {
         double consumo = nvl(fs.getConsumoTot());
         double spesaFissa = nvl(fs.getSpesaFissaVendita()) + nvl(fs.getSpesaFissaRete());
         // imponibile + iva: comprende anche le voci che non confluiscono nelle righe dello scontrino
-        double totaleBolletta = nvl(fs.getTotaleImponibile()) + nvl(fs.getTotaleIva());
+        double totaleBolletta = nvl(fs.getTotaleDaPagare()) - nvl(fs.getTotalePartite());
         writeCell(scontrino, s, "pod", fornitura.getId());
         writeCell(scontrino, s, "indirizzo_fornitura", fornitura.getIndirizzo() + ", " + fornitura.getCap() + " "
                 + fornitura.getComune() + " (" + fornitura.getProvincia() + ")");
@@ -225,7 +230,7 @@ public class ExcelService {
         // accise, iva e totali
         writeCell(scontrino, s, "iva", nvl(fs.getTotaleImposte()) + nvl(fs.getTotaleIva()));
         writeCell(scontrino, s, "totale_bolletta", totaleBolletta);
-        writeCell(scontrino, s, "totale_da_pagare", totaleBolletta + nvl(fs.getTotalePartite()));
+        writeCell(scontrino, s, "totale_da_pagare", fs.getTotaleDaPagare());
         if (!altrePartite(fs).isEmpty()) {
             writeCell(scontrino, s, "altre_partite_01", altrePartite(fs));
             writeCell(scontrino, s, "altre_partite_imp_01", fs.getTotalePartite());
@@ -329,7 +334,8 @@ public class ExcelService {
         writeCell(workbook, s, "costo_medio_bolletta", consumo > 1 ? totale / consumo : null);
         // riepilogo iva
         writeCell(workbook, s, "iva", fattureSingole.get(0).getFornitura().getIva() / 100);
-        writeCell(workbook, s, "imponibile", materia + trasportoOneri + accise);
+        // comprende le altre partite soggette a iva
+        writeCell(workbook, s, "imponibile", nvl(fattura.getTotaleImponibile()));
         writeCell(workbook, s, "importo_iva", iva);
     }
 

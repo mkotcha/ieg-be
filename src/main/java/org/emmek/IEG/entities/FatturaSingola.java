@@ -150,8 +150,13 @@ public class FatturaSingola {
     @Column(name = "spesa_potenza_rete_media")
     private Double spesaPotenzaReteMedia;
 
+    // tutte le altre partite (le soggette a iva sono anche nell'imponibile)
     @Column(name = "totale_partite")
     private Double totalePartite;
+
+    // imponibile + iva + altre partite esenti iva
+    @Column(name = "totale_da_pagare")
+    private Double totaleDaPagare;
 
     @ManyToOne
     @JoinColumn(name = "dispacciamento_id", nullable = false)

@@ -131,12 +131,12 @@ public class GenerazioneFattureService {
             return transactionTemplate.execute(status -> {
                 Cliente cliente = clienteRepository.findById(clienteId).orElseThrow();
                 Fattura fattura = fatturaService.calcolaFattura(cliente, mese, anno);
-                double partite = fattura.getFattureSingole().stream()
-                        .mapToDouble(fs -> fs.getTotalePartite() != null ? fs.getTotalePartite() : 0).sum();
+                double totale = fattura.getFattureSingole().stream()
+                        .mapToDouble(fs -> fs.getTotaleDaPagare() != null ? fs.getTotaleDaPagare() : 0).sum();
                 try {
                     ExcelService.LavoroFattura lavoro = excelService.preparaFattura(fattura);
                     return new Calcolata(clienteId, cliente.getRagioneSociale(), fattura.getNumeroFattura(),
-                            fattura.getTotaleImponibile() + fattura.getTotaleIva() + partite, lavoro,
+                            totale, lavoro,
                             System.currentTimeMillis() - inizio);
                 } catch (IOException e) {
                     throw new RuntimeException(e);

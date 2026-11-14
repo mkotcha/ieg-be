@@ -111,6 +111,26 @@ class CalcoloFatturaServiceTest {
         assertEquals(15.0, voce(fs, "reattiva_75").getQuantita(), DELTA);
     }
 
+    @Test
+    void altrePartiteSoggetteAIvaNellImponibile() {
+        FatturaSingola fs = fatturaDiEsempio();
+        AltraPartita pratica = new AltraPartita();
+        pratica.setVoce("Onere per pratica di aumento di potenza");
+        pratica.setImporto(75.29);
+        pratica.setEsenteIva(false);
+        AltraPartita morosita = new AltraPartita();
+        morosita.setVoce("Corrispettivo Morosità Energia");
+        morosita.setImporto(332.28); // esente iva: default
+        new CalcoloFatturaService().calcola(fs, punDiEsempio(), List.of(pratica, morosita));
+
+        assertEquals(75.29 + 332.28, fs.getTotalePartite(), DELTA);
+        assertEquals(23.4376 + 75.29, fs.getTotaleImponibile(), DELTA);
+        assertEquals((23.4376 + 75.29) * 0.22, fs.getTotaleIva(), DELTA);
+        assertEquals((23.4376 + 75.29) * 1.22 + 332.28, fs.getTotaleDaPagare(), DELTA);
+        assertEquals(0.22, voce(fs, "altra_partita_1").getIva());
+        assertEquals(0.0, voce(fs, "altra_partita_2").getIva());
+    }
+
     private static VoceFatturaSingola voce(FatturaSingola fs, String codice) {
         return fs.getVoci().stream().filter(v -> v.getCodice().equals(codice)).findFirst().orElseThrow();
     }
