@@ -20,6 +20,12 @@ import xlwings as xw
 XLSX = 51  # xlOpenXMLWorkbook
 PDF = 0  # xlTypePDF
 TENTATIVI_AVVIO = 5
+# tema dei template: la cartella creata da Excel ha il tema predefinito (Office 2023+, Aptos) e i fogli copiati
+# prenderebbero colori e font del tema di destinazione. Sovrascrivibile con la variabile d'ambiente IEG_TEMA_EXCEL.
+TEMA = os.environ.get(
+    "IEG_TEMA_EXCEL",
+    r"C:\Program Files\Microsoft Office\root\Document Themes 16\Office 2013 - 2022 Theme.thmx",
+)
 
 
 def avvia_excel():
@@ -51,6 +57,7 @@ def chiudi_excel(app):
 def componi(app, lavoro):
     fattura = app.books.add()
     try:
+        fattura.api.ApplyTheme(TEMA)
         foglio_iniziale = fattura.sheets[0]
         for pagina in lavoro["pagine"]:
             sorgente = app.books.open(os.path.abspath(pagina))
@@ -71,6 +78,8 @@ def componi(app, lavoro):
 def main(file_lavori, file_esiti):
     with open(file_lavori, encoding="utf-8") as f:
         lavori = json.load(f)
+    if not os.path.isfile(TEMA):
+        raise FileNotFoundError(f"Tema Excel non trovato: {TEMA} (impostare IEG_TEMA_EXCEL)")
     esiti = []
     app = avvia_excel()
     try:
