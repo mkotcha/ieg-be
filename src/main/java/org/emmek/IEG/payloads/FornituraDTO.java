@@ -18,6 +18,8 @@ public record FornituraDTO(
         String idPrezzo,
         String provincia,
         String tipoContatore,
-        String tipoPrelievo
+        String tipoPrelievo,
+        // € al mese, negativo = restituzione al cliente; vuoto = nessuna rettifica
+        String rettificaProgrammazione
 ) {
 }

@@ -93,6 +93,11 @@ public class Fornitura {
     @JoinColumn(name = "offerta_id")
     private Offerta offerta;
 
+    // € al mese sulla riga "Rettifica oneri di programmazione" (negativo = restituzione al cliente di somme
+    // addebitate in più): transitoria, si azzera a fine rientro; con null/0 la riga non compare nel pdf
+    @Column(name = "rettifica_programmazione")
+    private Double rettificaProgrammazione;
+
     @JsonIgnore
     @ManyToMany
     @JoinTable(

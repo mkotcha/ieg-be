@@ -99,7 +99,8 @@ public class CalcoloFatturaService {
             v.add("ocv", offerta.getDescrizione() != null ? offerta.getDescrizione() : "Oneri di commercializzazione variabili",
                     MATERIA, VENDITA, KWH, nvl(offerta.getOcv()), consumoConPerdite);
         }
-        v.add("rettifica", "Rettifica oneri di programmazione", MATERIA, null, PDP, 0, 1);
+        // importo fisso mensile della fornitura (negativo = restituzione di somme addebitate in più)
+        v.add("rettifica", "Rettifica oneri di programmazione", MATERIA, null, PDP, nvl(fornitura.getRettificaProgrammazione()), 1);
         // ---- trasporto e gestione del contatore
         v.add("maggiorazione_capacita", "Maggiorazione Corrispettivo Mercato Capacità var", TRASPORTO, VENDITA, KWH, maggiorazione, consumo);
         v.add("perdite_maggiorazione_capacita", "Perdite Maggiorazione Corrispettivo Mercato Capacità var", TRASPORTO, VENDITA, KWH, maggiorazione, perdite);

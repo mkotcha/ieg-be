@@ -48,6 +48,8 @@ public class ExcelService {
     private static final int COL_QUANTITA = 10;     // K
     private static final int COL_IMPORTO = 11;      // L
     private static final int COL_IVA = 12;          // M
+    // righe del dettaglio nascoste quando l'importo è 0 (es. la rettifica, che hanno solo alcune forniture)
+    private static final java.util.Set<String> RIGHE_NASCOSTE_SE_ZERO = java.util.Set.of("rettifica");
 
     private static final String TEMPLATE_RIEPILOGO = "template/pagina_1.xlsx";
     private static final String TEMPLATE_SCONTRINO = "template/pagina_2.xlsx";
@@ -169,7 +171,13 @@ public class ExcelService {
         for (VoceFatturaSingola voce : fs.getVoci()) {
             if (voce.getSezione() == SezioneFattura.ALTRE_PARTITE) continue; // riga unica, scritta sotto
             String nome = "voce_" + voce.getCodice();
-            if (findCell(dettaglio, s, nome) == null) continue;
+            Cell cellaVoce = findCell(dettaglio, s, nome);
+            if (cellaVoce == null) continue;
+            if (RIGHE_NASCOSTE_SE_ZERO.contains(voce.getCodice()) && nvl(voce.getImporto()) == 0) {
+                // riga presente solo per alcune forniture: nascosta, non compare nel pdf
+                cellaVoce.getRow().setZeroHeight(true);
+                continue;
+            }
             setValue(findCell(dettaglio, s, nome, COL_DESCRIZIONE), voce.getDescrizione());
             setValue(findCell(dettaglio, s, nome, COL_DAL), voce.getDal());
             setValue(findCell(dettaglio, s, nome, COL_AL), voce.getAl());

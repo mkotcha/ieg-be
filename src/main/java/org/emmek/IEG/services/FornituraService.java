@@ -82,7 +82,17 @@ public class FornituraService {
         fornitura.setProvincia(payload.provincia());
         fornitura.setTipoContatore(TipoContatore.valueOf(payload.tipoContatore()));
         fornitura.setTipoPrelievo(TipoPrelievo.valueOf(payload.tipoPrelievo()));
+        fornitura.setRettificaProgrammazione(parseImporto(payload.rettificaProgrammazione()));
         return fornituraRepository.save(fornitura);
+    }
+
+    /**
+     * Importo opzionale, anche con la virgola decimale; vuoto o 0 = null.
+     */
+    private static Double parseImporto(String valore) {
+        if (valore == null || valore.isBlank()) return null;
+        double d = Double.parseDouble(valore.trim().replaceAll(",", "."));
+        return d == 0 ? null : d;
     }
 
     public Fornitura updateFornitura(String id, FornituraDTO payload, Cliente cliente) {
@@ -109,6 +119,7 @@ public class FornituraService {
         fornitura.setProvincia(payload.provincia());
         fornitura.setTipoContatore(TipoContatore.valueOf(payload.tipoContatore()));
         fornitura.setTipoPrelievo(TipoPrelievo.valueOf(payload.tipoPrelievo()));
+        fornitura.setRettificaProgrammazione(parseImporto(payload.rettificaProgrammazione()));
         return fornituraRepository.save(fornitura);
     }
 

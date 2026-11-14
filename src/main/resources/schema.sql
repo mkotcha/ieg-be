@@ -135,7 +135,9 @@ CREATE TABLE forniture (
     iva Double precision NOT NULL,
     data_switch date NOT NULL,
     data_switch_out date,
-    offerta_id bigint
+    offerta_id bigint,
+    -- € al mese sulla riga "Rettifica oneri di programmazione" (negativo = restituzione al cliente); null = nessuna
+    rettifica_programmazione Double precision
 );
 
 CREATE SEQUENCE letture_id_seq

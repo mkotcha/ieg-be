@@ -104,7 +104,9 @@ the consumption month):
    values (spesa vendita/rete, quote fisse/potenza, prezzi medi) on `FatturaSingola`. Rules: PUN prices or the
    offerta's fixed F1–F3; spread only if `hasSpread` (`Offerta.getSpreadEffettivo`); OCV = `offerta.ocv` €/kWh on
    consumption + losses; power quotas on potenza impegnata if < 16 kW, otherwise on peak power; reactive penalties
-   only for BTA6 (F1/F2 per band, plus capacitive "immessa" in F3). `AltraPartita` rows of the month (table
+   only for BTA6 (F1/F2 per band, plus capacitive "immessa" in F3). The "Rettifica oneri di programmazione" line is
+   the fixed monthly `Fornitura.rettificaProgrammazione` (transitional refund of past over-billing, negative; only
+   a few PODs have it: `ExcelService` hides the row when it is 0). `AltraPartita` rows of the month (table
    `altre_partite`, e.g. morosità, pratiche) become `ALTRE_PARTITE` lines: if `esenteIva` (already VAT-inclusive or
    out of scope, e.g. morosità) they stay out of the imponibile and are only added to `totaleDaPagare`; otherwise they
    are imponibile and pay the fornitura's VAT rate.
