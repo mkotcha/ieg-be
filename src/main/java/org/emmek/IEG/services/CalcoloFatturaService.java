@@ -207,23 +207,30 @@ public class CalcoloFatturaService {
     }
 
     /**
-     * Reattiva tra 33% e 75% dell'attiva.
+     * Reattiva compresa tra il 33% e il 75% dell'attiva, calcolata fascia per fascia solo in F1 e F2
+     * (come nella fattura del fornitore): somma di min(R, 75% A) - 33% A.
      */
     static double reattiva33(FatturaSingola fs) {
-        double attiva = nvl(fs.getConsumoTot());
-        double reattiva = nvl(fs.getConsumoTotR());
-        double percentuale = reattiva > 0 && attiva > 0 ? reattiva * 100 / attiva : 0;
-        return percentuale > 33 ? reattiva - (reattiva / 100 * 33) - reattiva75(fs) : 0;
+        return quotaReattiva(fs.getConsumoF1(), fs.getConsumoF1r(), 0.33, 0.75)
+                + quotaReattiva(fs.getConsumoF2(), fs.getConsumoF2r(), 0.33, 0.75);
     }
 
     /**
-     * Reattiva oltre il 75% dell'attiva.
+     * Reattiva oltre il 75% dell'attiva, fascia per fascia solo in F1 e F2: somma di R - 75% A.
      */
     static double reattiva75(FatturaSingola fs) {
-        double attiva = nvl(fs.getConsumoTot());
-        double reattiva = nvl(fs.getConsumoTotR());
-        double percentuale = reattiva > 0 && attiva > 0 ? reattiva * 100 / attiva : 0;
-        return percentuale > 75 ? reattiva - (reattiva / 100 * 75) : 0;
+        return quotaReattiva(fs.getConsumoF1(), fs.getConsumoF1r(), 0.75, Double.POSITIVE_INFINITY)
+                + quotaReattiva(fs.getConsumoF2(), fs.getConsumoF2r(), 0.75, Double.POSITIVE_INFINITY);
+    }
+
+    /**
+     * Parte della reattiva di una fascia compresa tra soglia (frazione dell'attiva) e limite (frazione dell'attiva).
+     */
+    private static double quotaReattiva(Double attiva, Double reattiva, double soglia, double limite) {
+        double a = nvl(attiva);
+        double r = nvl(reattiva);
+        double massimo = Double.isInfinite(limite) ? r : Math.min(r, limite * a);
+        return Math.max(0, massimo - soglia * a);
     }
 
     private static double nvl(Double valore) {

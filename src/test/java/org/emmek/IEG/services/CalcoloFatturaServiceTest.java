@@ -88,6 +88,34 @@ class CalcoloFatturaServiceTest {
     }
 
     @Test
+    void reattivaInduttivaPerFasciaSoloF1F2() {
+        FatturaSingola fs = fatturaDiEsempio();
+        // GLG SRLS ottobre 2026 (circa): il fornitore fattura 34 kVArh tra 33% e 75%
+        fs.setConsumoF1(678.0);
+        fs.setConsumoF1r(218.0); // 32%: niente penale
+        fs.setConsumoF2(368.0);
+        fs.setConsumoF2r(155.0); // 155 - 33% di 368 = 33,56
+        fs.setConsumoF3(437.0);
+        fs.setConsumoF3r(277.0); // F3 esclusa
+        new CalcoloFatturaService().calcola(fs, punDiEsempio());
+        assertEquals(33.56, voce(fs, "reattiva_33").getQuantita(), DELTA);
+        assertEquals(0.0, voce(fs, "reattiva_75").getQuantita(), DELTA);
+
+        // oltre il 75%: la parte tra 33% e 75% va in reattiva_33, il resto in reattiva_75
+        fs.setConsumoF1(100.0);
+        fs.setConsumoF1r(90.0);
+        fs.setConsumoF2(0.0);
+        fs.setConsumoF2r(0.0);
+        new CalcoloFatturaService().calcola(fs, punDiEsempio());
+        assertEquals(42.0, voce(fs, "reattiva_33").getQuantita(), DELTA);
+        assertEquals(15.0, voce(fs, "reattiva_75").getQuantita(), DELTA);
+    }
+
+    private static VoceFatturaSingola voce(FatturaSingola fs, String codice) {
+        return fs.getVoci().stream().filter(v -> v.getCodice().equals(codice)).findFirst().orElseThrow();
+    }
+
+    @Test
     void altrePartiteIvaInclusaFuoriDallImponibile() {
         FatturaSingola fs = fatturaDiEsempio();
         AltraPartita partita = new AltraPartita();
