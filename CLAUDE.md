@@ -96,7 +96,10 @@ the consumption month):
 3. `LetturaService.getLetture`: readings from the `letturaFinale` date of the previous month's `FatturaSingola` to the
    last day of the month. Without a previous invoice (first invoice) it starts at the switch reading if one falls in
    the period, else at the last day of the previous month (to include the month-end reading). `Fornitura.dataSwitch`
-   is entered by hand and unreliable: don't base logic on it. `getConsumi` computes consumption over all readings, multiplied
+   is entered by hand and unreliable: don't base logic on it. The period rule lives in `periodoLetture`, shared with
+   `GET /api/letture/verifica?mese=&anno=` (`VerificaLettureService`): for every fornitura the bulk generation would
+   bill it reports missing start/month-end readings, estimated final readings and invoices that can't be computed.
+   `getConsumi` computes consumption over all readings, multiplied
    by the meter constants (`ka` active, `kr` reactive, `kp` power); losses are 10% per band. The first and last
    readings are stored on the `FatturaSingola` (`letturaIniziale`/`letturaFinale`); `consumoTotVerifica` (last − first)
    is a cross-check that logs a warning when it differs. TODO: meter replacement readings (`TipoLettura.CAMBIO`).

@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -37,6 +36,7 @@ import java.util.TreeSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -384,45 +384,54 @@ public class LetturaService {
         return letturaRepository.save(lettura);
     }
 
-    public List<Lettura> getLetture(Fornitura fornitura, int mese, int anno) {
-        LocalDate from;
-        LocalDate to;
+    /**
+     * Da dove parte il periodo delle letture di una fattura (vedi periodoLetture).
+     */
+    public enum OrigineInizio {FATTURA_PRECEDENTE, LETTURA_SWITCH, FINE_MESE_PRECEDENTE}
+
+    /**
+     * Periodo delle letture della fattura del mese: estremi inclusi e da dove parte.
+     */
+    public record PeriodoLetture(LocalDate dal, LocalDate al, OrigineInizio origine) {
+    }
+
+    /**
+     * Periodo delle letture della fattura del mese, fino all'ultimo giorno del mese. Inizio:
+     * <ul>
+     *     <li>la lettura finale della fattura del mese precedente;</li>
+     *     <li>se non c'è (prima fattura), la lettura di switch (Raccolta = S) se cade nel periodo: è datata il giorno
+     *     prima dello switch;</li>
+     *     <li>altrimenti la lettura di fine mese precedente (per un cliente nuovo le letture precedenti allo switch
+     *     non arrivano, quindi si parte comunque dalla prima lettura disponibile).</li>
+     * </ul>
+     * La data di switch della fornitura non si usa: è inserita a mano e non è affidabile.
+     */
+    public PeriodoLetture periodoLetture(Fornitura fornitura, int mese, int anno) {
         LocalDate primoDelMese = LocalDate.of(anno, mese, 1);
         LocalDate mesePrecedente = primoDelMese.minusMonths(1);
-        to = primoDelMese.withDayOfMonth(primoDelMese.lengthOfMonth());
+        LocalDate to = primoDelMese.withDayOfMonth(primoDelMese.lengthOfMonth());
         LocalDate fineMesePrecedente = primoDelMese.minusDays(1);
-        // inizio periodo: lettura finale della fattura del mese precedente; se non c'è (prima fattura):
-        // - la lettura di switch (Raccolta = S) se cade nel periodo: è datata il giorno prima dello switch
-        // - altrimenti la lettura di fine mese precedente (per un cliente nuovo le letture precedenti allo switch
-        //   non arrivano, quindi si parte comunque dalla prima lettura disponibile)
-        // la data di switch della fornitura non si usa: è inserita a mano e non è affidabile
-        from = fatturaSingolaRepository
-                .findDataUltimaLetturaFatturata(fornitura, mesePrecedente.getMonthValue(), mesePrecedente.getYear())
-                .orElseGet(() -> letturaRepository
-                        .findFirstByFornituraAndRaccoltaAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, Lettura.RACCOLTA_SWITCH, fineMesePrecedente, to)
-                        .map(Lettura::getDataLettura)
-                        .orElse(fineMesePrecedente));
-        List<Lettura> letture = letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
+        Optional<LocalDate> fatturata = fatturaSingolaRepository
+                .findDataUltimaLetturaFatturata(fornitura, mesePrecedente.getMonthValue(), mesePrecedente.getYear());
+        if (fatturata.isPresent()) return new PeriodoLetture(fatturata.get(), to, OrigineInizio.FATTURA_PRECEDENTE);
+        return letturaRepository
+                .findFirstByFornituraAndRaccoltaAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, Lettura.RACCOLTA_SWITCH, fineMesePrecedente, to)
+                .map(l -> new PeriodoLetture(l.getDataLettura(), to, OrigineInizio.LETTURA_SWITCH))
+                .orElse(new PeriodoLetture(fineMesePrecedente, to, OrigineInizio.FINE_MESE_PRECEDENTE));
+    }
+
+    /**
+     * Letture del periodo della fattura del mese (periodoLetture), ordinate per data decrescente.
+     */
+    public List<Lettura> lettureDelPeriodo(Fornitura fornitura, PeriodoLetture periodo) {
+        return letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, periodo.dal(), periodo.al());
+    }
+
+    public List<Lettura> getLetture(Fornitura fornitura, int mese, int anno) {
+        List<Lettura> letture = lettureDelPeriodo(fornitura, periodoLetture(fornitura, mese, anno));
         if (letture.size() < 2)
             throw new RuntimeException(fornitura.getId() + " non ci sono abbastanza letture per calcolare il consumo per il mese " + mese + " dell'anno " + anno);
         return letture;
-    }
-
-    public int contaLetture(Fornitura fornitura, int mese, int anno) {
-        LocalDate from;
-        LocalDate to;
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        if (mese == 1) {
-            from = LocalDate.parse((anno - 1) + "-12-15", formatter);
-        } else {
-            from = LocalDate.parse(anno + "-" + String.format("%02d", mese - 1) + "-15", formatter);
-        }
-        if (mese == 12) {
-            to = LocalDate.parse((anno + 1) + "-01-15", formatter);
-        } else {
-            to = LocalDate.parse(anno + "-" + String.format("%02d", mese + 1) + "-15", formatter);
-        }
-        return letturaRepository.countByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, from, to);
     }
 
     public Map<String, Double> getConsumi(List<Lettura> letture) {
