@@ -7,6 +7,8 @@ import org.emmek.IEG.payloads.ClienteDTO;
 import org.emmek.IEG.services.ClienteService;
 import org.emmek.IEG.services.FatturaService;
 import org.emmek.IEG.services.FornituraService;
+import org.emmek.IEG.services.LetturaService;
+import org.emmek.IEG.payloads.ConsumoMensileDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,6 +29,9 @@ public class ClienteController {
 
     @Autowired
     private FatturaService fatturaService;
+
+    @Autowired
+    private LetturaService letturaService;
 
     @GetMapping("")
     public Page<Cliente> getClienti(@RequestParam(defaultValue = "0") int page,
@@ -61,6 +66,15 @@ public class ClienteController {
     @GetMapping("/{id}/forniture")
     public List<Fornitura> getForniture(@PathVariable String id) {
         return fornituraService.findByCliente(clienteService.findById(id));
+    }
+
+    /**
+     * Consumi attivi per fascia degli ultimi mesi, sommati su tutti i pod del cliente, dalle letture.
+     */
+    @GetMapping("/{id}/consumi")
+    public List<ConsumoMensileDTO> getConsumi(@PathVariable String id, @RequestParam(defaultValue = "24") int mesi) {
+        return letturaService.consumiMensili(fornituraService.findByCliente(clienteService.findById(id)),
+                Math.max(1, Math.min(mesi, 120)));
     }
 
     @GetMapping("/{id}/fatture")

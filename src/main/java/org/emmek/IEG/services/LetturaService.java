@@ -12,6 +12,7 @@ import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.model.xml.DatiPod;
 import org.emmek.IEG.model.xml.FlussoMisure;
 import org.emmek.IEG.model.Avanzamento;
+import org.emmek.IEG.payloads.ConsumoMensileDTO;
 import org.emmek.IEG.payloads.EsitoImportLettureDTO;
 import org.emmek.IEG.payloads.LetturaDTO;
 import org.emmek.IEG.repositories.FatturaSingolaRepository;
@@ -28,6 +29,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -432,6 +434,107 @@ public class LetturaService {
         if (letture.size() < 2)
             throw new RuntimeException(fornitura.getId() + " non ci sono abbastanza letture per calcolare il consumo per il mese " + mese + " dell'anno " + anno);
         return letture;
+    }
+
+    /**
+     * Consumi attivi per fascia degli ultimi mesi di calendario (compreso quello in corso), dalle letture: per ogni
+     * mese dall'ultima lettura fino a fine mese precedente all'ultima fino a fine mese (nel mese dello switch dalla
+     * prima lettura del mese), con le costanti del contatore come in fattura. I mesi senza letture sufficienti non ci
+     * sono, e nemmeno quelli che partirebbero da una lettura di più mesi prima (il consumo sarebbe di più mesi); quelli
+     * che non coprono tutto il mese hanno completo = false.
+     * Le letture importate dagli excel iniziali hanno ka = 0: per quelle si usa la costante della lettura valida più
+     * vicina (la successiva, o la precedente), altrimenti risulterebbero consumi nulli e poi un picco.
+     */
+    public List<ConsumoMensileDTO> consumiMensili(Fornitura fornitura, int mesi) {
+        YearMonth ultimo = YearMonth.now();
+        YearMonth primo = ultimo.minusMonths(mesi - 1L);
+        List<Lettura> letture = letturaRepository
+                .findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, LocalDate.of(2000, 1, 1), ultimo.atEndOfMonth())
+                .stream().sorted(Comparator.comparing(Lettura::getDataLettura)).toList();
+        double[] costanti = costantiAttiva(letture);
+        List<ConsumoMensileDTO> consumi = new ArrayList<>();
+        for (YearMonth ym = primo; !ym.isAfter(ultimo); ym = ym.plusMonths(1)) {
+            LocalDate fineMesePrecedente = ym.minusMonths(1).atEndOfMonth();
+            LocalDate fineMese = ym.atEndOfMonth();
+            int fine = ultimaFinoA(letture, fineMese);
+            if (fine < 0 || letture.get(fine).getDataLettura().isBefore(ym.atDay(1))) continue;
+            int inizio = ultimaFinoA(letture, fineMesePrecedente);
+            if (inizio < 0) {
+                // primo mese con letture (switch): si parte dalla prima lettura del mese
+                inizio = 0;
+            }
+            if (fine <= inizio) continue;
+            // partenza da prima del mese precedente (mancano letture di fine mese): il consumo sarebbe di più mesi
+            if (letture.get(inizio).getDataLettura().isBefore(ym.minusMonths(1).atDay(1))) continue;
+            // somma tra letture consecutive, come getConsumi
+            double f1 = 0, f2 = 0, f3 = 0;
+            for (int i = inizio + 1; i <= fine; i++) {
+                Lettura prec = letture.get(i - 1);
+                Lettura curr = letture.get(i);
+                f1 += nvl(curr.getEaF1()) * costanti[i] - nvl(prec.getEaF1()) * costanti[i - 1];
+                f2 += nvl(curr.getEaF2()) * costanti[i] - nvl(prec.getEaF2()) * costanti[i - 1];
+                f3 += nvl(curr.getEaF3()) * costanti[i] - nvl(prec.getEaF3()) * costanti[i - 1];
+            }
+            LocalDate dal = letture.get(inizio).getDataLettura();
+            LocalDate al = letture.get(fine).getDataLettura();
+            consumi.add(new ConsumoMensileDTO(ym.getMonthValue(), ym.getYear(), f1, f2, f3, f1 + f2 + f3,
+                    dal, al, dal.equals(fineMesePrecedente) && al.equals(fineMese), 1, 1));
+        }
+        return consumi;
+    }
+
+    /**
+     * Consumi mensili per fascia di più forniture (es. tutti i pod di un cliente) sommati mese per mese
+     * (consumiMensili di ognuna). Un mese c'è se almeno un pod ha consumo; è completo solo se tutti i pod lo hanno
+     * per l'intero mese. dal/al sono la lettura più vecchia e la più recente usate.
+     */
+    public List<ConsumoMensileDTO> consumiMensili(List<Fornitura> forniture, int mesi) {
+        Map<YearMonth, List<ConsumoMensileDTO>> perMese = new java.util.TreeMap<>();
+        for (Fornitura fornitura : forniture) {
+            for (ConsumoMensileDTO c : consumiMensili(fornitura, mesi)) {
+                perMese.computeIfAbsent(YearMonth.of(c.anno(), c.mese()), k -> new ArrayList<>()).add(c);
+            }
+        }
+        List<ConsumoMensileDTO> somme = new ArrayList<>();
+        perMese.forEach((ym, consumi) -> somme.add(new ConsumoMensileDTO(ym.getMonthValue(), ym.getYear(),
+                consumi.stream().mapToDouble(ConsumoMensileDTO::f1).sum(),
+                consumi.stream().mapToDouble(ConsumoMensileDTO::f2).sum(),
+                consumi.stream().mapToDouble(ConsumoMensileDTO::f3).sum(),
+                consumi.stream().mapToDouble(ConsumoMensileDTO::totale).sum(),
+                consumi.stream().map(ConsumoMensileDTO::dal).min(Comparator.naturalOrder()).orElseThrow(),
+                consumi.stream().map(ConsumoMensileDTO::al).max(Comparator.naturalOrder()).orElseThrow(),
+                consumi.size() == forniture.size() && consumi.stream().allMatch(ConsumoMensileDTO::completo),
+                consumi.size(), forniture.size())));
+        return somme;
+    }
+
+    /**
+     * Costante ka di ogni lettura (lista ordinata per data); dove manca (null o 0) quella della lettura valida
+     * successiva più vicina, o della precedente se dopo non ce ne sono; 1 se nessuna lettura ce l'ha.
+     */
+    private static double[] costantiAttiva(List<Lettura> letture) {
+        double[] k = new double[letture.size()];
+        double successiva = 0;
+        for (int i = letture.size() - 1; i >= 0; i--) {
+            Double ka = letture.get(i).getKa();
+            if (ka != null && ka != 0) successiva = ka;
+            k[i] = successiva;
+        }
+        double precedente = 1;
+        for (int i = 0; i < k.length; i++) {
+            if (k[i] == 0) k[i] = precedente;
+            else precedente = k[i];
+        }
+        return k;
+    }
+
+    /**
+     * Indice dell'ultima lettura (lista ordinata per data crescente) con data fino a quella indicata, -1 se nessuna.
+     */
+    private static int ultimaFinoA(List<Lettura> letture, LocalDate data) {
+        int indice = -1;
+        for (int i = 0; i < letture.size() && !letture.get(i).getDataLettura().isAfter(data); i++) indice = i;
+        return indice;
     }
 
     public Map<String, Double> getConsumi(List<Lettura> letture) {

@@ -170,6 +170,10 @@ from are in `template/*.bas`.
 
 - `data/`, `fatture/`, `log/`, and all `*.xlsx` files are gitignored — the ones present locally are working data, not
   fixtures to keep in sync with commits.
+- About 830 old readings (≤ Jan 2026, from the bootstrap Excel import) have `ka = 0`; `getConsumi` would turn them
+  into zero consumption followed by a spike. They are older than any invoice period; the monthly consumption chart
+  (`GET /api/forniture/{pod}/consumi`, `LetturaService.consumiMensili`; `GET /api/clienti/{id}/consumi` sums all the
+  client's PODs) takes the constant from the nearest valid reading instead.
 - IDs for `Cliente` and `Lettura` are often assigned manually (`getNextId()` / imported from Excel) rather than
   DB-generated — be careful with insert logic that assumes auto-increment.
 - Numeric fields coming from XML/Excel/DTOs are frequently comma-decimal Italian-formatted strings and require
