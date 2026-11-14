@@ -8,13 +8,17 @@ Uso: python componiFattura.py lavori.json esiti.json
 lavori.json: [{"xlsx": "...", "pdf": "...", "pagine": ["pagina_000.xlsx", ...]}, ...]
 esiti.json:  [{"xlsx": "...", "ok": true, "errore": null}, ...]  (uno per lavoro, nello stesso ordine)
 """
+import ctypes
 import json
 import os
 import random
 import sys
+import threading
 import time
 import traceback
+from ctypes import wintypes
 
+import pythoncom
 import xlwings as xw
 
 XLSX = 51  # xlOpenXMLWorkbook
@@ -26,6 +30,52 @@ TEMA = os.environ.get(
     "IEG_TEMA_EXCEL",
     r"C:\Program Files\Microsoft Office\root\Document Themes 16\Office 2013 - 2022 Theme.thmx",
 )
+
+
+_user32 = ctypes.windll.user32
+_user32.CreateDesktopW.restype = wintypes.HANDLE
+_user32.CreateDesktopW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR, ctypes.c_void_p, wintypes.DWORD,
+                                   wintypes.DWORD, ctypes.c_void_p]
+_user32.SetThreadDesktop.argtypes = [wintypes.HANDLE]
+_user32.CloseDesktop.argtypes = [wintypes.HANDLE]
+_GENERIC_ALL = 0x10000000
+DESKTOP_NASCOSTO = "ieg_excel"
+
+
+def su_desktop_nascosto(funzione, *args):
+    """
+    Esegue funzione in un thread associato a un desktop Windows nascosto: l'istanza di Excel avviata da quel thread
+    nasce su quel desktop e le finestre che apre comunque, come "Publishing..." con la barra di avanzamento durante
+    ExportAsFixedFormat (Excel invisibile la mostra lo stesso e l'API non permette di evitarla), non compaiono sul
+    desktop dell'utente. Se il desktop non si può creare esegue funzione normalmente.
+    """
+    desktop = _user32.CreateDesktopW(DESKTOP_NASCOSTO, None, None, 0, _GENERIC_ALL, None)
+    if not desktop:
+        print(f"Desktop nascosto non creato (errore {ctypes.GetLastError()}): Excel mostrerà le sue finestre",
+              flush=True)
+        return funzione(*args)
+    esito = {}
+
+    def esegui():
+        try:
+            # va associato prima che il thread crei finestre o inizializzi COM
+            if not _user32.SetThreadDesktop(desktop):
+                print(f"SetThreadDesktop non riuscita (errore {ctypes.GetLastError()})", flush=True)
+            pythoncom.CoInitialize()
+            try:
+                esito["valore"] = funzione(*args)
+            finally:
+                pythoncom.CoUninitialize()
+        except BaseException as e:
+            esito["errore"] = e
+
+    thread = threading.Thread(target=esegui, name="excel-nascosto")
+    thread.start()
+    thread.join()
+    _user32.CloseDesktop(desktop)
+    if "errore" in esito:
+        raise esito["errore"]
+    return esito.get("valore")
 
 
 def avvia_excel():
@@ -108,4 +158,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("Uso: python componiFattura.py lavori.json esiti.json")
         sys.exit(1)
-    main(sys.argv[1], sys.argv[2])
+    su_desktop_nascosto(main, sys.argv[1], sys.argv[2])

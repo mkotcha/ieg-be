@@ -74,15 +74,16 @@ Standard layered Spring MVC structure under `src/main/java/org/emmek/IEG/`:
 
 ### Meter reading ingestion flow
 
-`LettureController.uploadFlussi` → `LetturaService.uploadFlussi`: accepts a zip upload, recursively extracts nested
+`LettureController.uploadFlussi` → `LetturaService.salvaZip` + `importaFlussi` (background job, see Long-running
+jobs): accepts a zip upload, recursively extracts nested
 zips, then parses every `*_PDO*` / `*_PNO*` / `*_SNM*` XML file found under `data/uploads` via `JaxbParser`, matching
 each `DatiPod` to a `Fornitura` by POD code and upserting a `Lettura` for that POD/date (overwrites if one already
 exists for the same day, except that a switch reading is never overwritten by a periodic one). Flow format spec and
 examples: `data/ST_Standard_Tracciati_Misure_v2.0/`. Switch readings come from `SNM`/`SNM2G` flows, are dated
 `DataMisura` = the day before the switch date (`DataPrest`; when `DataMisura` is present it always gives the reading
 date, even if the `Ea` curve is there), and are stored with `raccolta = "S"`
-(`Lettura.isSwitch()`; set from the flow code too, since `Raccolta` in those flows isn't always "S"). This is a heavy, `ADMIN`-only, synchronous operation — errors per-file/per-record are logged
-and skipped rather than failing the whole batch.
+(`Lettura.isSwitch()`; set from the flow code too, since `Raccolta` in those flows isn't always "S"). This is a heavy, `ADMIN`-only operation — errors per-file/per-record are logged,
+counted in the result (`EsitoImportLettureDTO`) and skipped rather than failing the whole batch.
 
 ### Invoicing flow
 
@@ -113,14 +114,27 @@ the consumption month):
 5. `ExcelService.createFattura` writes `fatture/<anno>/<mese>/<numero> - <ragione sociale>.xlsx` and `.pdf`: each
    page is filled with POI in a temp copy of its template (sheet renamed first, `preparaFattura`), then
    `script/componiFattura.py` merges the sheets and exports the PDF (`componiFatture`, job list in JSON, one Excel
-   instance for all the jobs, restarted if it crashes). `FatturaService.calcolaFattura` computes and saves without
+   instance for all the jobs, restarted if it crashes). The script runs Excel from a thread bound to a hidden Windows
+   desktop (`su_desktop_nascosto`): an invisible Excel still shows the "Publishing..." progress window on every
+   PDF export, and there it stays off the user's screen. `FatturaService.calcolaFattura` computes and saves without
    generating files.
 
 `POST /api/fatture/genera?mese=&anno=` (`GenerazioneFattureService`, ADMIN) generates the invoices of all active
 clients: invoices are computed, saved and their pages filled in parallel (`fatture.generazione.thread`, default 4;
 one transaction per client, an error doesn't stop the others), then all xlsx/pdf are composed sequentially by one
 `componiFattura.py` run with a single Excel instance (parallel Excel instances slow each other down and crash).
-Returns a per-client result (`EsitoFatturaDTO`).
+It runs as a background job whose result is the per-client list of `EsitoFatturaDTO`; progress of the composition
+phase comes from the "ok …"/"ERRORE …" line the script prints after each invoice.
+
+### Long-running jobs
+
+`POST /api/fatture/genera` and `POST /api/letture/flussi` return immediately (202) with a `Lavoro` (`model/Lavoro`):
+`LavoroService` runs the work on a background thread and keeps its state in memory (phase, done/total, per-item
+errors, final result or fatal error), lost on restart. At most one job per `TipoLavoro` runs at a time (a second start
+gets 400). The FE polls `GET /api/lavori/{id}` and, after a page reload, resumes with
+`GET /api/lavori/ultimo?tipo=` (204 if none). Services report progress through the `Avanzamento` interface
+(`Avanzamento.NESSUNO` when called without a job). Background threads have no request-scoped Hibernate session
+(open-in-view): lazy associations must be read inside a transaction (`TransactionTemplate`).
 
 ### Supplier invoices and comparison
 

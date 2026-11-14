@@ -11,6 +11,8 @@ import org.emmek.IEG.enums.TipoLettura;
 import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.model.xml.DatiPod;
 import org.emmek.IEG.model.xml.FlussoMisure;
+import org.emmek.IEG.model.Avanzamento;
+import org.emmek.IEG.payloads.EsitoImportLettureDTO;
 import org.emmek.IEG.payloads.LetturaDTO;
 import org.emmek.IEG.repositories.FatturaSingolaRepository;
 import org.emmek.IEG.repositories.LetturaRepository;
@@ -27,7 +29,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,48 +64,88 @@ public class LetturaService {
         return letturaRepository.findAll(pageable);
     }
 
-    public String uploadFlussi(MultipartFile body) throws IOException {
-        String destination = "data/uploads";
-        deleteAllFilesInFolder(destination);
+    /**
+     * Esito di una misura del flusso (vedi parseDatiPod).
+     */
+    public enum EsitoMisura {INSERITA, AGGIORNATA, SWITCH_MANTENUTA, POD_SCONOSCIUTO, ERRORE}
+
+    /**
+     * Copia lo zip caricato in un file temporaneo: il file della richiesta sparisce a fine richiesta, mentre
+     * l'import prosegue in background (importaFlussi).
+     */
+    public File salvaZip(MultipartFile body) throws IOException {
         File zip = File.createTempFile(UUID.randomUUID().toString(), "_tmp.zip");
         log.debug("zip: {}", zip.getAbsolutePath());
         try (FileOutputStream o = new FileOutputStream(zip)) {
             IOUtils.copy(body.getInputStream(), o);
         }
-
-        try (ZipFile zipFile = new ZipFile(zip)) { // try-with-resources
-            zipFile.extractAll(destination);
-        } catch (Exception e) {
-            log.error("Errore durante l'estrazione del file ZIP: {}", zip.getName(), e);
-        }
-
-        log.debug("estrazione completata");
-
-        processZipFilesRecursively(new File(destination), destination);
-        processXmlFilesRecursively(new File(destination));
-
-        log.debug("finito");
-        return "fino a qui tutto bene...";
+        return zip;
     }
 
-    private void processXmlFilesRecursively(File folder) {
-        File[] files = folder.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    processXmlFilesRecursively(file);
-                } else if (file.getName().toLowerCase().endsWith(".xml") &&
-                        (file.getName().contains("_PDO") || file.getName().contains("_PNO") || file.getName().contains("_SNM"))) {
-                    log.debug("Processing XML file: {}", file.getAbsolutePath());
-                    try {
-                        FlussoMisure flussi = jaxbParser.parseXml(file.getAbsolutePath());
-                        for (DatiPod datiPod : flussi.datiPod) {
-                            parseDatiPod(datiPod, isFlussoSwitch(flussi.codFlusso));
-                        }
-                    } catch (Exception e) {
-                        log.error("Errore durante il parsing del file XML: {}", file.getName());
+    /**
+     * Estrae lo zip (anche annidato) in data/uploads e importa le letture dei flussi PDO, PNO e SNM; gli errori sui
+     * singoli file e misure sono contati e non interrompono l'import. Lo zip viene eliminato alla fine.
+     */
+    public EsitoImportLettureDTO importaFlussi(File zip, Avanzamento avanzamento) throws IOException {
+        String destination = "data/uploads";
+        try {
+            avanzamento.fase("Estrazione archivi", 0);
+            deleteAllFilesInFolder(destination);
+            try (ZipFile zipFile = new ZipFile(zip)) {
+                zipFile.extractAll(destination);
+            } catch (Exception e) {
+                throw new IOException("Archivio zip non leggibile: " + e.getMessage(), e);
+            }
+            processZipFilesRecursively(new File(destination), destination);
+            log.debug("estrazione completata");
+
+            List<File> flussi = new ArrayList<>();
+            raccogliFlussi(new File(destination), flussi);
+            avanzamento.fase("Importazione letture", flussi.size());
+            Map<EsitoMisura, Integer> conteggi = new EnumMap<>(EsitoMisura.class);
+            Set<String> podSconosciuti = new TreeSet<>();
+            int fileScartati = 0;
+            for (File file : flussi) {
+                log.debug("Processing XML file: {}", file.getAbsolutePath());
+                try {
+                    FlussoMisure flusso = jaxbParser.parseXml(file.getAbsolutePath());
+                    for (DatiPod datiPod : flusso.datiPod) {
+                        EsitoMisura esito = parseDatiPod(datiPod, isFlussoSwitch(flusso.codFlusso));
+                        conteggi.merge(esito, 1, Integer::sum);
+                        if (esito == EsitoMisura.POD_SCONOSCIUTO) podSconosciuti.add(datiPod.pod);
                     }
+                } catch (Exception e) {
+                    log.error("Errore durante il parsing del file XML: {}", file.getName());
+                    fileScartati++;
+                    avanzamento.errore(file.getName() + ": " + e.getMessage());
                 }
+                avanzamento.avanza();
+            }
+            EsitoImportLettureDTO esito = new EsitoImportLettureDTO(flussi.size(), fileScartati,
+                    conteggi.getOrDefault(EsitoMisura.INSERITA, 0),
+                    conteggi.getOrDefault(EsitoMisura.AGGIORNATA, 0),
+                    conteggi.getOrDefault(EsitoMisura.SWITCH_MANTENUTA, 0),
+                    conteggi.getOrDefault(EsitoMisura.ERRORE, 0),
+                    List.copyOf(podSconosciuti));
+            log.info("Import flussi terminato: {}", esito);
+            return esito;
+        } finally {
+            if (!zip.delete()) log.warn("Impossibile eliminare lo zip temporaneo {}", zip);
+        }
+    }
+
+    /**
+     * File xml dei flussi di misura importati (PDO, PNO, SNM) nella cartella e nelle sottocartelle.
+     */
+    private void raccogliFlussi(File folder, List<File> flussi) {
+        File[] files = folder.listFiles();
+        if (files == null) return;
+        for (File file : files) {
+            if (file.isDirectory()) {
+                raccogliFlussi(file, flussi);
+            } else if (file.getName().toLowerCase().endsWith(".xml") &&
+                    (file.getName().contains("_PDO") || file.getName().contains("_PNO") || file.getName().contains("_SNM"))) {
+                flussi.add(file);
             }
         }
     }
@@ -130,7 +176,7 @@ public class LetturaService {
         return codFlusso != null && (codFlusso.startsWith("SNM") || codFlusso.startsWith("RSN"));
     }
 
-    public void parseDatiPod(DatiPod datiPod, boolean switching) {
+    public EsitoMisura parseDatiPod(DatiPod datiPod, boolean switching) {
         // le misure di un flusso di switching sono letture di switch anche se Raccolta non vale "S"
         if (switching && datiPod.misura != null) datiPod.misura.raccolta = Lettura.RACCOLTA_SWITCH;
         Lettura lettura;
@@ -174,7 +220,8 @@ public class LetturaService {
                 LocalDate dataLettura = LocalDate.of(anno, mese, giorno);
                 List<Lettura> lettureEsistenti = letturaRepository.findByFornituraAndDataLettura(fornitura, dataLettura);
                 lettura = lettureEsistenti.isEmpty() ? null : lettureEsistenti.get(0);
-                if (lettura == null) {
+                boolean nuova = lettura == null;
+                if (nuova) {
                     lettura = new Lettura();
                     lettura.setId(getNextId());
                     lettura.setFornitura(fornitura);
@@ -183,7 +230,7 @@ public class LetturaService {
                 } else if (lettura.isSwitch() && !Lettura.RACCOLTA_SWITCH.equals(datiPod.misura.raccolta)) {
                     // la lettura di switch non viene sovrascritta da una lettura periodica dello stesso giorno
                     log.debug("lettura di switch del pod {} del {}/{}/{} mantenuta", datiPod.pod, giorno, mese, anno);
-                    return;
+                    return EsitoMisura.SWITCH_MANTENUTA;
                 }
 
                 switch (datiPod.datiPdp.trattamento) {
@@ -224,11 +271,14 @@ public class LetturaService {
 //                    log.info("lettura del {}/{}/{}", giorno, mese, anno);
 
                 letturaRepository.save(lettura);
+                return nuova ? EsitoMisura.INSERITA : EsitoMisura.AGGIORNATA;
             } catch (Exception e) {
                 log.error("lettura non importata da file xml - {}", e.getMessage());
+                return EsitoMisura.ERRORE;
             }
 //            }
         }
+        return EsitoMisura.POD_SCONOSCIUTO;
     }
 
     private void deleteAllFilesInFolder(String folderPath) {

@@ -64,6 +64,13 @@ public class ExcelService {
      * invece di produrre un file incompleto.
      */
     private void eseguiScript(String script, String... args) {
+        eseguiScript(script, null, args);
+    }
+
+    /**
+     * Come sopra, passando ogni riga dell'output dello script a perRiga (se non null) appena viene stampata.
+     */
+    private void eseguiScript(String script, java.util.function.Consumer<String> perRiga, String... args) {
         List<String> comando = new java.util.ArrayList<>(List.of("python", script));
         comando.addAll(List.of(args));
         StringBuilder output = new StringBuilder();
@@ -75,6 +82,7 @@ public class ExcelService {
                 while ((line = reader.readLine()) != null) {
                     log.debug(line);
                     output.append(line).append('\n');
+                    if (perRiga != null) perRiga.accept(line);
                 }
             }
             exitCode = process.waitFor();
@@ -408,6 +416,13 @@ public class ExcelService {
      * @return per ogni lavoro, nello stesso ordine, il messaggio d'errore o null se la fattura è stata composta
      */
     public List<String> componiFatture(List<LavoroFattura> lavori) throws IOException {
+        return componiFatture(lavori, null);
+    }
+
+    /**
+     * Come sopra, chiamando composta ogni volta che lo script termina una fattura (riuscita o no).
+     */
+    public List<String> componiFatture(List<LavoroFattura> lavori, Runnable composta) throws IOException {
         Path cartella = Files.createTempDirectory("componi_");
         try {
             ObjectMapper json = new ObjectMapper();
@@ -417,7 +432,12 @@ public class ExcelService {
                     .map(l -> Map.of("xlsx", l.xlsx(), "pdf", l.pdf(), "pagine", l.pagine()))
                     .toList());
             log.debug("Composizione di {} fatture", lavori.size());
-            eseguiScript("script/componiFattura.py", fileLavori.toString(), fileEsiti.toString());
+            // lo script stampa "ok ..." o "ERRORE ..." alla fine di ogni fattura
+            eseguiScript("script/componiFattura.py",
+                    riga -> {
+                        if (composta != null && (riga.startsWith("ok ") || riga.startsWith("ERRORE "))) composta.run();
+                    },
+                    fileLavori.toString(), fileEsiti.toString());
             List<Map<String, Object>> esiti = json.readValue(fileEsiti.toFile(), new TypeReference<>() {
             });
             List<String> errori = new ArrayList<>();

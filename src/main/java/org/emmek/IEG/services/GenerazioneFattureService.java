@@ -3,6 +3,7 @@ package org.emmek.IEG.services;
 import lombok.extern.slf4j.Slf4j;
 import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fattura;
+import org.emmek.IEG.model.Avanzamento;
 import org.emmek.IEG.payloads.EsitoFatturaDTO;
 import org.emmek.IEG.repositories.ClienteRepository;
 import org.emmek.IEG.repositories.FatturaRepository;
@@ -58,21 +59,38 @@ public class GenerazioneFattureService {
     }
 
     public List<EsitoFatturaDTO> generaFatture(int mese, int anno) {
-        List<Long> clienti = clienteRepository.findByIsActiveTrueOrderById().stream()
+        return generaFatture(mese, anno, Avanzamento.NESSUNO);
+    }
+
+    /**
+     * Come sopra, aggiornando l'avanzamento: fase di calcolo (clienti) e fase di composizione (fatture).
+     */
+    public List<EsitoFatturaDTO> generaFatture(int mese, int anno, Avanzamento avanzamento) {
+        // in transazione: le forniture sono lazy e in background non c'è la sessione della richiesta
+        List<Long> clienti = transactionTemplate.execute(status -> clienteRepository.findByIsActiveTrueOrderById().stream()
                 .filter(c -> c.getForniture() != null && !c.getForniture().isEmpty())
                 .map(Cliente::getId)
-                .toList();
+                .toList());
         log.info("Generazione fatture {}/{}: {} clienti attivi, {} thread", mese, anno, clienti.size(), thread);
         long inizio = System.currentTimeMillis();
         List<EsitoFatturaDTO> esiti = new ArrayList<>();
 
         // 1. calcolo e pagine, in parallelo
         List<Calcolata> calcolate = new ArrayList<>();
+        avanzamento.fase("Calcolo fatture", clienti.size());
         ExecutorService executor = Executors.newFixedThreadPool(thread);
         try {
             List<Future<Object>> futures = new ArrayList<>();
             for (Long id : clienti) {
-                futures.add(executor.submit(() -> calcola(id, mese, anno)));
+                // avanzamento aggiornato appena il cliente è pronto, non nell'ordine di attesa dei future
+                futures.add(executor.submit(() -> {
+                    Object risultato = calcola(id, mese, anno);
+                    if (risultato instanceof EsitoFatturaDTO esito) {
+                        avanzamento.errore(esito.ragioneSociale() + ": " + esito.errore());
+                    }
+                    avanzamento.avanza();
+                    return risultato;
+                }));
             }
             for (Future<Object> future : futures) {
                 Object risultato = attendi(future);
@@ -88,8 +106,9 @@ public class GenerazioneFattureService {
         // 2. composizione di xlsx e pdf, una istanza di Excel per tutte
         long inizioComposizione = System.currentTimeMillis();
         List<String> errori;
+        avanzamento.fase("Composizione PDF", calcolate.size());
         try {
-            errori = excelService.componiFatture(calcolate.stream().map(Calcolata::lavoro).toList());
+            errori = excelService.componiFatture(calcolate.stream().map(Calcolata::lavoro).toList(), avanzamento::avanza);
         } catch (IOException | RuntimeException e) {
             log.error("Composizione delle fatture {}/{} non riuscita: {}", mese, anno, e.getMessage());
             errori = calcolate.stream().map(c -> "Composizione non riuscita: " + e.getMessage()).toList();
@@ -108,6 +127,7 @@ public class GenerazioneFattureService {
                 });
             } else {
                 log.error("Fattura {} non composta: {}", c.numeroFattura(), errore);
+                avanzamento.errore(c.ragioneSociale() + ": " + errore);
             }
             esiti.add(new EsitoFatturaDTO(c.clienteId(), c.ragioneSociale(), c.numeroFattura(), c.totale(),
                     c.millisecondi() + millisComposizione, errore));

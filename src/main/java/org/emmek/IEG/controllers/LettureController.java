@@ -7,6 +7,9 @@ import org.emmek.IEG.exceptions.BadRequestException;
 import org.emmek.IEG.payloads.LetturaDTO;
 import org.emmek.IEG.services.FornituraService;
 import org.emmek.IEG.services.LetturaService;
+import org.emmek.IEG.enums.TipoLavoro;
+import org.emmek.IEG.model.Lavoro;
+import org.emmek.IEG.services.LavoroService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
@@ -17,6 +20,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
 
@@ -29,6 +33,9 @@ public class LettureController {
 
     @Autowired
     private FornituraService fornituraService;
+
+    @Autowired
+    private LavoroService lavoroService;
 
     @GetMapping("")
     public Page<Lettura> getLetture(@RequestParam(defaultValue = "0") int page,
@@ -43,10 +50,28 @@ public class LettureController {
         return letturaService.findAll(page, size, Sort.by(sortDirection, sortField));
     }
 
+    /**
+     * Salva lo zip dei flussi di misura e ne avvia l'import in background; restituisce subito il lavoro, da seguire
+     * con GET /api/lavori/{id} (a lavoro completato il risultato è un EsitoImportLettureDTO).
+     */
     @PostMapping("/flussi")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public String uploadFlussi(@RequestParam("flussi") MultipartFile body) throws IOException, JAXBException {
-        return letturaService.uploadFlussi(body);
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public Lavoro uploadFlussi(@RequestParam("flussi") MultipartFile body) throws IOException {
+        File zip = letturaService.salvaZip(body);
+        try {
+            return lavoroService.avvia(TipoLavoro.IMPORT_LETTURE, "Import flussi " + body.getOriginalFilename(), lavoro -> {
+                try {
+                    return letturaService.importaFlussi(zip, lavoro);
+                } catch (IOException e) {
+                    throw new java.io.UncheckedIOException(e.getMessage(), e);
+                }
+            });
+        } catch (RuntimeException e) {
+            // lavoro non avviato (es. un altro import in corso)
+            zip.delete();
+            throw e;
+        }
     }
 
     @PostMapping("")

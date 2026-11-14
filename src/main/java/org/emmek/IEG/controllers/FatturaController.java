@@ -2,6 +2,11 @@ package org.emmek.IEG.controllers;
 
 import lombok.extern.slf4j.Slf4j;
 import org.emmek.IEG.entities.Fattura;
+import org.emmek.IEG.enums.TipoLavoro;
+import org.emmek.IEG.model.Lavoro;
+import org.emmek.IEG.services.LavoroService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.emmek.IEG.payloads.ConfrontoFatturaDTO;
 import org.emmek.IEG.payloads.ConfrontoMeseDTO;
 import org.emmek.IEG.payloads.EsitoFatturaDTO;
@@ -42,14 +47,21 @@ public class FatturaController {
     @Autowired
     private ConfrontoFatturaService confrontoFatturaService;
 
+    @Autowired
+    private LavoroService lavoroService;
+
     /**
-     * Genera in parallelo le fatture del mese di consumo indicato per tutti i clienti attivi.
-     * Restituisce l'esito per cliente; un errore su un cliente non blocca gli altri.
+     * Avvia in background la generazione delle fatture del mese di consumo indicato per tutti i clienti attivi e
+     * restituisce subito il lavoro, da seguire con GET /api/lavori/{id}: a lavoro completato il risultato è la
+     * lista degli esiti per cliente (EsitoFatturaDTO); un errore su un cliente non blocca gli altri.
      */
     @PostMapping("/genera")
     @PreAuthorize("hasAuthority('ADMIN')")
-    public List<EsitoFatturaDTO> generaFatture(@RequestParam int mese, @RequestParam int anno) {
-        return generazioneFattureService.generaFatture(mese, anno);
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public Lavoro generaFatture(@RequestParam int mese, @RequestParam int anno) {
+        return lavoroService.avvia(TipoLavoro.GENERAZIONE_FATTURE,
+                String.format("Generazione fatture %02d/%d", mese, anno),
+                lavoro -> generazioneFattureService.generaFatture(mese, anno, lavoro));
     }
 
 
