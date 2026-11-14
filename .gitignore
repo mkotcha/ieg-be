@@ -40,3 +40,7 @@ env.properties
 *.xlsb
 /fatture/**
 
+
+### Python ###
+__pycache__/
+*.pyc
