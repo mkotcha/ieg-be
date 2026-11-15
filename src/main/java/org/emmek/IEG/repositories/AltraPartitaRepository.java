@@ -8,5 +8,6 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import java.util.List;
 
 public interface AltraPartitaRepository extends JpaRepository<AltraPartita, Long>, JpaSpecificationExecutor<AltraPartita> {
-    List<AltraPartita> findByFornituraAndMeseAndAnnoOrderById(Fornitura fornitura, int mese, int anno);
+    // solo quelle attive: le disattivate non vanno in fattura
+    List<AltraPartita> findByFornituraAndAttivaTrueAndMeseAndAnnoOrderById(Fornitura fornitura, int mese, int anno);
 }

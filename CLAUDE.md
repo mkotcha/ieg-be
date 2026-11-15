@@ -126,7 +126,8 @@ the consumption month):
    only for BTA6 (F1/F2 per band, plus capacitive "immessa" in F3). The "Rettifica oneri di programmazione" line is
    the fixed monthly `Fornitura.rettificaProgrammazione` (transitional refund of past over-billing, negative; only
    a few PODs have it: the PDF omits the row when it is 0). `AltraPartita` rows of the month (table
-   `altre_partite`, e.g. morosità, pratiche) become `ALTRE_PARTITE` lines: if `esenteIva` (already VAT-inclusive or
+   `altre_partite`, e.g. morosità, pratiche; only `attiva` ones, an inactive one is kept but skipped, toggled with
+   `PUT /api/altre-partite/{id}/attiva?attiva=`) become `ALTRE_PARTITE` lines: if `esenteIva` (already VAT-inclusive or
    out of scope, e.g. morosità) they stay out of the imponibile and are only added to `totaleDaPagare`; otherwise they
    are imponibile and pay the fornitura's VAT rate.
 5. `PdfFatturaService.createFattura` writes `fatture/<anno>/<mese>/<numero> - <ragione sociale>.pdf` (see Invoice

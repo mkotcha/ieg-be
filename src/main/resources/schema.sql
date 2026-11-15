@@ -258,6 +258,7 @@ CREATE TABLE altre_partite (
     voce character varying(255) NOT NULL,
     importo Double precision NOT NULL,
     esente_iva boolean NOT NULL DEFAULT true,
+    attiva boolean NOT NULL DEFAULT true,
     mese integer NOT NULL,
     anno integer NOT NULL
 );

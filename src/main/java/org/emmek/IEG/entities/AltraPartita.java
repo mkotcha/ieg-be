@@ -36,6 +36,10 @@ public class AltraPartita {
     @Column(name = "esente_iva", nullable = false)
     private boolean esenteIva = true;
 
+    // false = esclusa dalle fatture ma conservata, si può riattivare
+    @Column(name = "attiva", nullable = false)
+    private boolean attiva = true;
+
     @Column(name = "mese", nullable = false)
     private int mese;
 

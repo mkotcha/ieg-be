@@ -125,7 +125,7 @@ public class FatturaService {
             Offerta offerta = fornitura.getOfferta();
             Pun pun = offerta != null && offerta.isPun() ? punService.getPun(fornitura, mese, anno) : null;
             calcoloFatturaService.calcola(fatturaSingola, pun,
-                    altraPartitaRepository.findByFornituraAndMeseAndAnnoOrderById(fornitura, mese, anno));
+                    altraPartitaRepository.findByFornituraAndAttivaTrueAndMeseAndAnnoOrderById(fornitura, mese, anno));
             fatturaSingolaRepository.save(fatturaSingola);
             fattura.addFatturaSingola(fatturaSingola);
         });
