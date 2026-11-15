@@ -276,7 +276,7 @@ public class PdfFatturaService {
         s.put("pod", fornitura.getId());
         s.put("indirizzo", testo(fornitura.getIndirizzo()) + ", " + String.format("%05d", fornitura.getCap()) + " "
                 + testo(fornitura.getComune()) + " (" + testo(fornitura.getProvincia()) + ")");
-        s.put("potenzaImpegnata", numero(fornitura.getPotenzaImpegnata()) + " kW");
+        s.put("potenzaImpegnata", potenza(fornitura.getPotenzaImpegnata()) + " kW");
         // quota per consumi
         s.put("consumoNetto", formato(consumo, "#,##0.000") + " kWh");
         s.put("spesaConsumi", importo(nvl(fs.getSpesaVendita()) + nvl(fs.getSpesaRete())));
@@ -293,7 +293,7 @@ public class PdfFatturaService {
         s.put("spesaFissaRete", importo(fs.getSpesaFissaRete()));
         s.put("spesaFissaReteMedia", importo(fs.getSpesaFissaRete()) + alMese);
         // quota potenza
-        s.put("piccoPotenza", numero(fs.getPotenzaOneri()) + " kW per 1 mese");
+        s.put("piccoPotenza", potenza(fs.getPotenzaOneri()) + " kW per 1 mese");
         s.put("spesaPotenza", importo(fs.getSpesaPotenzaRete()));
         s.put("spesaPotenzaMedia", fs.getSpesaPotenzaReteMedia() != null
                 ? importo(fs.getSpesaPotenzaReteMedia()) + " " + EURO + "/kW/mese" : "");
@@ -387,8 +387,8 @@ public class PdfFatturaService {
         d.put("codiceCliente", codiceCliente(fornitura.getCliente()));
         d.put("pod", fornitura.getId());
         d.put("tipoContatore", fornitura.getTipoContatore() != null ? capitalize(fornitura.getTipoContatore().name()) : "");
-        d.put("potenzaDisponibile", numero(fornitura.getPotenzaDisponibile()));
-        d.put("potenzaImpegnata", numero(fs.getPotenzaOneri()));
+        d.put("potenzaDisponibile", potenza(fornitura.getPotenzaDisponibile()));
+        d.put("potenzaImpegnata", potenza(fs.getPotenzaOneri()));
         d.put("sezioni", sezioni);
         d.put("partite", altrePartite(fs).stream()
                 .map(v -> Map.of("descrizione", testo(v.getDescrizione()), "importo", euro(nvl(v.getImporto())),
@@ -569,6 +569,14 @@ public class PdfFatturaService {
     private static String numero(Double valore) {
         if (valore == null) return "";
         return BigDecimal.valueOf(valore).stripTrailingZeros().toPlainString().replace('.', ',');
+    }
+
+    /**
+     * Potenza in kW con al massimo 3 decimali, senza zeri finali (es. 28.799999999999997 -> "28,8", 70.0 -> "70"):
+     * il picco prelevato è un prodotto di double e porta con sé l'errore di arrotondamento.
+     */
+    private static String potenza(Double valore) {
+        return valore != null ? formato(valore, "#,##0.###") : "";
     }
 
     private static String testo(String valore) {
