@@ -37,7 +37,7 @@ public class FatturaService {
     private FatturaSingolaRepository fatturaSingolaRepository;
 
     @Autowired
-    private ExcelService excelService;
+    private PdfFatturaService pdfFatturaService;
 
     @Autowired
     private PunService punService;
@@ -50,11 +50,11 @@ public class FatturaService {
 
 
     /**
-     * Calcola e salva la fattura del mese di consumo e ne genera xlsx e pdf.
+     * Calcola e salva la fattura del mese di consumo e ne genera il pdf.
      */
     public Fattura newfattura(Cliente cliente, Integer mese, Integer anno) throws IOException {
         Fattura fattura = calcolaFattura(cliente, mese, anno);
-        excelService.createFattura(fattura);
+        pdfFatturaService.createFattura(fattura);
         return fattura;
     }
 
@@ -138,7 +138,7 @@ public class FatturaService {
         fattura.setTotaleImponibile(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleImponibile).sum());
         fattura.setTotaleIva(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getTotaleIva).sum());
         fattura.setConsumoTotR(fattura.getFattureSingole().stream().mapToDouble(FatturaSingola::getConsumoTotR).sum());
-        // salva i totali prima di generare excel/pdf, così restano anche se la generazione del file fallisce
+        // salva i totali prima di generare il pdf, così restano anche se la generazione del file fallisce
         fatturaRepository.save(fattura);
         return fattura;
     }

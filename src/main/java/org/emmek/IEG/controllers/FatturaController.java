@@ -3,6 +3,7 @@ package org.emmek.IEG.controllers;
 import lombok.extern.slf4j.Slf4j;
 import org.emmek.IEG.entities.Fattura;
 import org.emmek.IEG.enums.TipoLavoro;
+import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.model.Lavoro;
 import org.emmek.IEG.services.LavoroService;
 import org.emmek.IEG.repositories.FatturaRepository;
@@ -33,6 +34,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -106,6 +108,9 @@ public class FatturaController {
         return download(fattura.getPdf(), MediaType.APPLICATION_PDF);
     }
 
+    /**
+     * Solo per le fatture generate con Excel: quelle nuove hanno soltanto il pdf (404).
+     */
     @GetMapping(value = "/{numeroFattura}/xlsx")
     public ResponseEntity<InputStreamResource> getFatturaXlsx(@PathVariable String numeroFattura) throws IOException {
         Fattura fattura = fatturaService.findByNumeroFattura(numeroFattura);
@@ -118,6 +123,7 @@ public class FatturaController {
      */
     private ResponseEntity<InputStreamResource> download(String src, MediaType tipo) throws IOException {
         log.debug("File da scaricare: {}", src);
+        if (src == null || !Files.isRegularFile(Path.of(src))) throw new NotFoundException("File della fattura non trovato");
         String nomeFile = Path.of(src).getFileName().toString();
         InputStreamResource resource = new InputStreamResource(new FileInputStream(src));
 

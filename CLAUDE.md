@@ -14,9 +14,8 @@ glossary below). Keep new code consistent with this convention; don't translate 
 ## Build, run, test
 
 Maven wrapper is used; a JDK 21 and a local PostgreSQL instance (db `ieg-2.1`, see `spring.datasource.url`) are
-required. Invoice generation also needs Windows with Microsoft Excel installed and a `python` on PATH with `xlwings`
-and `pywin32` (`python -m pip install xlwings pywin32`): the scripts in `script/` drive Excel via COM to copy template
-sheets and export the PDF.
+required. Nothing else: the invoice PDFs are generated in pure Java (no Excel, no Python), so the app runs the same on
+Linux and Windows.
 
 ```
 ./mvnw spring-boot:run          # run the app (also: mvnw.cmd on Windows)
@@ -36,10 +35,12 @@ exist".
 There is no linter config in the repo; formatting follows whatever IntelliJ default was used historically (see `.idea/`,
 though that's gitignored-equivalent and shouldn't be relied on).
 
-Test coverage is minimal: a Spring context-load smoke test (`IegApplicationTests`) and `CalcoloFatturaServiceTest`, a
-plain JUnit test (no Spring/DB) that checks the invoice calculation against the reference invoice AUEE202611007. Keep
-that test passing when touching invoice math; for everything else verify behavior manually (e.g. via the Swagger UI or
-manual requests).
+Test coverage is minimal: a Spring context-load smoke test (`IegApplicationTests`, currently disabled) and two plain
+JUnit tests (no Spring/DB): `CalcoloFatturaServiceTest` checks the invoice calculation against the reference invoice
+AUEE202611007, `PdfFatturaServiceTest` renders that invoice to `target/fattura-di-esempio.pdf` and checks page count
+and text (open the file, or `pdftoppm -png` it, to check the layout after touching the template). Keep them passing
+when touching invoice math or the PDF; for everything else verify behavior manually (e.g. via the Swagger UI or manual
+requests).
 
 ## Architecture
 
@@ -110,24 +111,17 @@ the consumption month):
    consumption + losses; power quotas on potenza impegnata if < 16 kW, otherwise on peak power; reactive penalties
    only for BTA6 (F1/F2 per band, plus capacitive "immessa" in F3). The "Rettifica oneri di programmazione" line is
    the fixed monthly `Fornitura.rettificaProgrammazione` (transitional refund of past over-billing, negative; only
-   a few PODs have it: `ExcelService` hides the row when it is 0). `AltraPartita` rows of the month (table
+   a few PODs have it: the PDF omits the row when it is 0). `AltraPartita` rows of the month (table
    `altre_partite`, e.g. morosità, pratiche) become `ALTRE_PARTITE` lines: if `esenteIva` (already VAT-inclusive or
    out of scope, e.g. morosità) they stay out of the imponibile and are only added to `totaleDaPagare`; otherwise they
    are imponibile and pay the fornitura's VAT rate.
-5. `ExcelService.createFattura` writes `fatture/<anno>/<mese>/<numero> - <ragione sociale>.xlsx` and `.pdf`: each
-   page is filled with POI in a temp copy of its template (sheet renamed first, `preparaFattura`), then
-   `script/componiFattura.py` merges the sheets and exports the PDF (`componiFatture`, job list in JSON, one Excel
-   instance for all the jobs, restarted if it crashes). The script runs Excel from a thread bound to a hidden Windows
-   desktop (`su_desktop_nascosto`): an invisible Excel still shows the "Publishing..." progress window on every
-   PDF export, and there it stays off the user's screen. `FatturaService.calcolaFattura` computes and saves without
-   generating files.
+5. `PdfFatturaService.createFattura` writes `fatture/<anno>/<mese>/<numero> - <ragione sociale>.pdf` (see Invoice
+   PDF). `FatturaService.calcolaFattura` computes and saves without generating the file.
 
 `POST /api/fatture/genera?mese=&anno=` (`GenerazioneFattureService`, ADMIN) generates the invoices of all active
-clients: invoices are computed, saved and their pages filled in parallel (`fatture.generazione.thread`, default 4;
-one transaction per client, an error doesn't stop the others), then all xlsx/pdf are composed sequentially by one
-`componiFattura.py` run with a single Excel instance (parallel Excel instances slow each other down and crash).
-It runs as a background job whose result is the per-client list of `EsitoFatturaDTO`; progress of the composition
-phase comes from the "ok …"/"ERRORE …" line the script prints after each invoice.
+clients in parallel (`fatture.generazione.thread`, default 4): each client is computed, saved and rendered to PDF in
+its own transaction, an error doesn't stop the others (if only the PDF fails the invoice stays saved and the error is
+reported). It runs as a background job whose result is the per-client list of `EsitoFatturaDTO`.
 
 ### Long-running jobs
 
@@ -166,12 +160,27 @@ with the data the summary provides to pre-fill their registration (latest row: `
 powers; `Tipo Utenza` → BT/MT/AT; `Data Apertura Utenza` → switch date; IT001 → EDIST). Client, address and VAT are
 not in the summary (its "client" is always IEG).
 
-**Templates** (`template/pagina_1.xlsx` riepilogo, `pagina_2.xlsx` scontrino, `pagina_3.xlsx` dettaglio) contain **no
-formulas**: Java computes every value and `ExcelService` only writes into named cells. Detail lines are located by the
-named cell `voce_<codice>` (column A of the row; columns G–M hold dal, al, unità, unitario, quantità, importo, iva).
-The same names exist on several sheets, so lookups must use the name that refers to the target sheet (`findCell`). The
-templates are gitignored (`*.xlsx`); previous versions are in `template/bak/`. The VBA macros the Java flow was ported
-from are in `template/*.bas`.
+### Invoice PDF
+
+`PdfFatturaService` fills the Thymeleaf template `src/main/resources/fattura/fattura.html` and converts it to PDF with
+openhtmltopdf (PDFBox): page 1 riepilogo, then for every fornitura scontrino dell'energia and allegato di dettaglio.
+The template has **no logic or number formatting**: Java puts already formatted strings in maps (`r` riepilogo,
+`f.scontrino`, `f.dettaglio`). Things to know when editing it:
+
+- it must stay well-formed XML (closed tags, `&#160;` not `&nbsp;`) and openhtmltopdf only supports CSS 2.1 (tables,
+  floats, `@page` margin boxes for "Pagina x di n" and the footer): no flexbox/grid;
+- the detail lines come from the saved `VoceFatturaSingola` rows; their grouping and bold group titles are the
+  `SEZIONI` structure in the service (codes not listed there are appended to their section; `rettifica` is omitted
+  when 0);
+- the pie chart is `<object type="grafico/torta" data-valori="...">`, drawn as vectors by `GraficoTorta`;
+- the font is `IEGSans-*.ttf`: Carlito (metric-compatible with Calibri, OFL, see `fattura/OFL.txt`) with the GSUB
+  table removed, because with ligatures (tt, ti, fi) the PDF text can't be searched or copied.
+
+Until Nov 2026 invoices were produced by filling Excel templates and driving Excel via COM (`ExcelService`,
+`script/componiFattura.py`, see git history), which also produced an xlsx: old invoices still have `Fattura.xlsx` and
+`GET /api/fatture/{numero}/xlsx` serves it (404 for the new ones; regenerating an invoice clears the field). The old
+templates (`template/pagina_*.xlsx`, gitignored) and the VBA macros the calculation was ported from (`template/*.bas`)
+are no longer used by the code.
 
 ## Notes / gotchas
 

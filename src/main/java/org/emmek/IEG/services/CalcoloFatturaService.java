@@ -15,7 +15,7 @@ import static org.emmek.IEG.enums.SezioneFattura.*;
 
 /**
  * Calcola tutte le voci di una fattura singola (dettaglio, totali e scontrino).
- * Le voci riproducono le righe del template pagina_3: ogni voce ha codice = nome della cella voce_[codice].
+ * Le voci sono le righe dell'allegato di dettaglio del pdf (PdfFatturaService le raggruppa per codice).
  * I consumi (consumoF1..F3, perdite, reattiva) devono essere già impostati sulla fattura singola.
  */
 @Service
