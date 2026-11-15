@@ -2,6 +2,7 @@ package org.emmek.IEG.controllers;
 
 import org.emmek.IEG.entities.Cliente;
 import org.emmek.IEG.entities.Fornitura;
+import org.emmek.IEG.entities.Lettura;
 import org.emmek.IEG.payloads.FornituraDTO;
 import org.emmek.IEG.services.ClienteService;
 import org.emmek.IEG.services.FornituraService;
@@ -64,6 +65,15 @@ public class FornitureController {
     @GetMapping("{id}/consumi")
     public List<ConsumoMensileDTO> getConsumi(@PathVariable String id, @RequestParam(defaultValue = "24") int mesi) {
         return letturaService.consumiMensili(fornituraService.findById(id), Math.max(1, Math.min(mesi, 120)));
+    }
+
+    /**
+     * Letture usate per le fatture della fornitura (iniziali e finali) delle ultime date, comprese quelle
+     * disattivate e le copie manuali delle stesse date, dalla più recente.
+     */
+    @GetMapping("{id}/letture")
+    public List<Lettura> getLettureFatturate(@PathVariable String id, @RequestParam(defaultValue = "6") int numero) {
+        return letturaService.lettureFatturate(fornituraService.findById(id), Math.max(1, Math.min(numero, 100)));
     }
 
     // associa alla fornitura un'offerta esistente, senza toccare gli altri dati

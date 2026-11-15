@@ -78,13 +78,25 @@ Standard layered Spring MVC structure under `src/main/java/org/emmek/IEG/`:
 `LettureController.uploadFlussi` → `LetturaService.salvaZip` + `importaFlussi` (background job, see Long-running
 jobs): accepts a zip upload, recursively extracts nested
 zips, then parses every `*_PDO*` / `*_PNO*` / `*_SNM*` XML file found under `data/uploads` via `JaxbParser`, matching
-each `DatiPod` to a `Fornitura` by POD code and upserting a `Lettura` for that POD/date (overwrites if one already
-exists for the same day, except that a switch reading is never overwritten by a periodic one). Flow format spec and
+each `DatiPod` to a `Fornitura` by POD code and upserting the supplier `Lettura` for that POD/date (overwrites the
+supplier reading of the same day if there is one, except that a switch reading is never overwritten by a periodic one;
+manual readings are never touched, see Manual readings). Flow format spec and
 examples: `data/ST_Standard_Tracciati_Misure_v2.0/`. Switch readings come from `SNM`/`SNM2G` flows, are dated
 `DataMisura` = the day before the switch date (`DataPrest`; when `DataMisura` is present it always gives the reading
 date, even if the `Ea` curve is there), and are stored with `raccolta = "S"`
 (`Lettura.isSwitch()`; set from the flow code too, since `Raccolta` in those flows isn't always "S"). This is a heavy, `ADMIN`-only operation — errors per-file/per-record are logged,
 counted in the result (`EsitoImportLettureDTO`) and skipped rather than failing the whole batch.
+
+### Manual readings
+
+Supplier readings are never edited or deleted to correct them: `Lettura.attiva` (false = kept but excluded from every
+calculation: invoices, `verifica`, `consumiMensili`) and `Lettura.manuale` (entered or corrected by hand). At most one
+reading per POD/date is active. `LetturaService.save` (POST) creates a manual active reading and deactivates the others
+of that date; `update` (PUT) edits a manual reading in place, while for a supplier reading it deactivates it and puts
+the new values in a manual copy; `PUT /api/letture/{id}/attiva?attiva=` toggles one (activating deactivates the others
+of the date); `delete` re-activates the only reading left on that date. The import inserts the supplier reading as
+inactive when the date already has an active manual one. The form doesn't send `ka`/`kr`/`kp`: they come from the
+original (copy) or from the nearest reading of the POD that has them (`completaCostanti`).
 
 ### Invoicing flow
 
@@ -100,7 +112,9 @@ the consumption month):
    is entered by hand and unreliable: don't base logic on it. The period rule lives in `periodoLetture`, shared with
    `GET /api/letture/verifica?mese=&anno=` (`VerificaLettureService`): for every fornitura the bulk generation would
    bill it reports missing start/month-end readings, estimated final readings and invoices that can't be computed.
-   `getConsumi` computes consumption over all readings, multiplied
+   Only active readings count. `getConsumi` computes consumption over all readings (if one of them is manual, only
+   over the first and the last: the supplier's intermediate ones are dropped, so the peak power is the last reading's,
+   and `getLetture` returns just those two), multiplied
    by the meter constants (`ka` active, `kr` reactive, `kp` power); losses are 10% per band. The first and last
    readings are stored on the `FatturaSingola` (`letturaIniziale`/`letturaFinale`); `consumoTotVerifica` (last − first)
    is a cross-check that logs a warning when it differs. TODO: meter replacement readings (`TipoLettura.CAMBIO`).

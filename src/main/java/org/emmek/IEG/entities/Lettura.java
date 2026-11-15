@@ -29,6 +29,14 @@ public class Lettura {
     @Column(name = "is_utile")
     private boolean isUtile;
 
+    // false = esclusa dai calcoli (consumi, fatture, verifica) ma conservata: per pod e data ce n'è al più una attiva
+    @Column(name = "attiva", nullable = false)
+    private boolean attiva = true;
+
+    // inserita o corretta a mano: l'import dei flussi non la tocca
+    @Column(name = "manuale", nullable = false)
+    private boolean manuale = false;
+
     @Column(name = "tipo_lettura", nullable = false)
     @Enumerated(EnumType.STRING)
     private TipoLettura tipoLettura;

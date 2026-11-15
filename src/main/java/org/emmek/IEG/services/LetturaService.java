@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -221,13 +222,16 @@ public class LetturaService {
 //                    log.info("parsing... {} {}", datiPod.pod, fornitura.getCliente().getRagioneSociale());
                 LocalDate dataLettura = LocalDate.of(anno, mese, giorno);
                 List<Lettura> lettureEsistenti = letturaRepository.findByFornituraAndDataLettura(fornitura, dataLettura);
-                lettura = lettureEsistenti.isEmpty() ? null : lettureEsistenti.get(0);
+                // le letture manuali non si toccano: si aggiorna (o si inserisce) solo quella del fornitore
+                lettura = lettureEsistenti.stream().filter(l -> !l.isManuale()).findFirst().orElse(null);
                 boolean nuova = lettura == null;
                 if (nuova) {
                     lettura = new Lettura();
                     lettura.setId(getNextId());
                     lettura.setFornitura(fornitura);
                     lettura.setDataLettura(LocalDate.of(anno, mese, giorno));
+                    // se per la data c'è già una lettura manuale attiva, quella del fornitore resta disattivata
+                    lettura.setAttiva(lettureEsistenti.stream().noneMatch(Lettura::isAttiva));
                     log.info("inserisco -------> lettura pod {} del {}/{}/{} - {}", datiPod.pod, giorno, mese, anno, fornitura.getCliente().getRagioneSociale());
                 } else if (lettura.isSwitch() && !Lettura.RACCOLTA_SWITCH.equals(datiPod.misura.raccolta)) {
                     // la lettura di switch non viene sovrascritta da una lettura periodica dello stesso giorno
@@ -317,6 +321,35 @@ public class LetturaService {
         }
         lettura.setId(getNextId());
         lettura.setFornitura(fornitura);
+        lettura.setManuale(true);
+        compila(lettura, body);
+        completaCostanti(lettura);
+        disattivaAltre(lettura);
+        return letturaRepository.save(lettura);
+    }
+
+    /**
+     * Costanti del contatore (ka, kr, kp) che il form non manda: quelle della lettura più vicina dello stesso pod che
+     * le ha (l'ultima fino alla data, altrimenti la prima successiva); 1 se il pod non ha altre letture.
+     */
+    private void completaCostanti(Lettura lettura) {
+        if (lettura.getKa() != null && lettura.getKr() != null && lettura.getKp() != null) return;
+        Lettura vicina = null;
+        if (lettura.getFornitura() != null) {
+            vicina = letturaRepository
+                    .findFirstByFornituraAndKaGreaterThanAndDataLetturaLessThanEqualOrderByDataLetturaDesc(lettura.getFornitura(), 0.0, lettura.getDataLettura())
+                    .or(() -> letturaRepository.findFirstByFornituraAndKaGreaterThanAndDataLetturaGreaterThanOrderByDataLetturaAsc(lettura.getFornitura(), 0.0, lettura.getDataLettura()))
+                    .orElse(null);
+        }
+        if (lettura.getKa() == null) lettura.setKa(vicina != null ? vicina.getKa() : 1.0);
+        if (lettura.getKr() == null) lettura.setKr(vicina != null && vicina.getKr() != null ? vicina.getKr() : 1.0);
+        if (lettura.getKp() == null) lettura.setKp(vicina != null && vicina.getKp() != null ? vicina.getKp() : 1.0);
+    }
+
+    /**
+     * Valori di una lettura inserita o modificata a mano; le costanti del contatore solo se presenti nella richiesta.
+     */
+    private static void compila(Lettura lettura, LetturaDTO body) {
         lettura.setDataLettura(LocalDate.parse(body.dataLettura()));
         lettura.setTipoContatore(TipoContatore.valueOf(body.tipoContatore()));
         lettura.setUtile(true);
@@ -338,17 +371,41 @@ public class LetturaService {
         lettura.setPotF1(potF1);
         lettura.setPotF2(potF2);
         lettura.setPotF3(potF3);
-        lettura.setKa(Double.parseDouble(body.ka().replaceAll(",", ".")));
-        lettura.setKr(Double.parseDouble(body.kr().replaceAll(",", ".")));
-        lettura.setKp(Double.parseDouble(body.kp().replaceAll(",", ".")));
+        if (parseDecimale(body.ka()) != null) lettura.setKa(parseDecimale(body.ka()));
+        if (parseDecimale(body.kr()) != null) lettura.setKr(parseDecimale(body.kr()));
+        if (parseDecimale(body.kp()) != null) lettura.setKp(parseDecimale(body.kp()));
         lettura.setNote(body.note());
-
-        return letturaRepository.save(lettura);
     }
 
+    /**
+     * Disattiva le altre letture attive dello stesso pod e della stessa data: ne resta attiva una sola.
+     */
+    private void disattivaAltre(Lettura lettura) {
+        if (lettura.getFornitura() == null) return;
+        for (Lettura altra : letturaRepository.findByFornituraAndDataLettura(lettura.getFornitura(), lettura.getDataLettura())) {
+            if (altra.isAttiva() && !altra.getId().equals(lettura.getId())) {
+                altra.setAttiva(false);
+                letturaRepository.save(altra);
+            }
+        }
+    }
+
+    /**
+     * Elimina la lettura; se era attiva e per la stessa data ne resta una sola (di solito quella del fornitore che una
+     * lettura manuale aveva sostituito) la riattiva.
+     */
+    @Transactional
     public void delete(Long id) {
         Lettura lettura = letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
+        boolean attiva = lettura.isAttiva();
         letturaRepository.delete(lettura);
+        if (!attiva) return;
+        List<Lettura> rimaste = letturaRepository.findByFornituraAndDataLettura(lettura.getFornitura(), lettura.getDataLettura())
+                .stream().filter(l -> !l.getId().equals(id)).toList();
+        if (rimaste.size() == 1) {
+            rimaste.get(0).setAttiva(true);
+            letturaRepository.save(rimaste.get(0));
+        }
     }
 
     public Lettura get(Long id) {
@@ -356,34 +413,60 @@ public class LetturaService {
 
     }
 
+    /**
+     * Modifica di una lettura. Una lettura manuale viene aggiornata; una lettura del fornitore non si sovrascrive:
+     * viene disattivata e i nuovi valori vanno in una copia manuale attiva, che è quella restituita.
+     */
+    @Transactional
     public Lettura update(Long id, LetturaDTO body) {
-        Lettura lettura = letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
-        lettura.setDataLettura(LocalDate.parse(body.dataLettura()));
-        lettura.setTipoContatore(TipoContatore.valueOf(body.tipoContatore()));
-        lettura.setUtile(true);
-        lettura.setTipoLettura(TipoLettura.valueOf(body.tipoLettura()));
-        lettura.setRaccolta(body.raccolta());
-        lettura.setTipoDato(body.tipoDato());
-        lettura.setValidato(body.validato());
-        Double potF1 = Double.parseDouble(body.potF1().replaceAll(",", "."));
-        Double potF2 = Double.parseDouble(body.potF2().replaceAll(",", "."));
-        Double potF3 = Double.parseDouble(body.potF3().replaceAll(",", "."));
-        Double potMax = Math.max(potF1, Math.max(potF2, potF3));
-        lettura.setPotMax(String.valueOf(potMax));
-        lettura.setEaF1(Double.parseDouble(body.eaF1().replaceAll(",", ".")));
-        lettura.setEaF2(Double.parseDouble(body.eaF2().replaceAll(",", ".")));
-        lettura.setEaF3(Double.parseDouble(body.eaF3().replaceAll(",", ".")));
-        lettura.setErF1(Double.parseDouble(body.erF1().replaceAll(",", ".")));
-        lettura.setErF2(Double.parseDouble(body.erF2().replaceAll(",", ".")));
-        lettura.setErF3(Double.parseDouble(body.erF3().replaceAll(",", ".")));
-        lettura.setPotF1(potF1);
-        lettura.setPotF2(potF2);
-        lettura.setPotF3(potF3);
-        lettura.setKa(Double.parseDouble(body.ka().replaceAll(",", ".")));
-        lettura.setKr(Double.parseDouble(body.kr().replaceAll(",", ".")));
-        lettura.setKp(Double.parseDouble(body.kp().replaceAll(",", ".")));
-        lettura.setNote(body.note());
+        Lettura originale = letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
+        Lettura lettura = originale;
+        if (!originale.isManuale()) {
+            lettura = new Lettura();
+            lettura.setId(getNextId());
+            lettura.setFornitura(originale.getFornitura());
+            lettura.setManuale(true);
+            // dati che il form non ha
+            lettura.setKa(originale.getKa());
+            lettura.setKr(originale.getKr());
+            lettura.setKp(originale.getKp());
+            lettura.setCausaOstativa(originale.getCausaOstativa());
+            lettura.setErcF1(originale.getErcF1());
+            lettura.setErcF2(originale.getErcF2());
+            lettura.setErcF3(originale.getErcF3());
+            originale.setAttiva(false);
+            letturaRepository.save(originale);
+        }
+        compila(lettura, body);
+        completaCostanti(lettura);
+        lettura.setAttiva(true);
+        disattivaAltre(lettura);
         return letturaRepository.save(lettura);
+    }
+
+    /**
+     * Attiva o disattiva una lettura; attivandola si disattivano le altre dello stesso pod e della stessa data.
+     */
+    @Transactional
+    public Lettura setAttiva(Long id, boolean attiva) {
+        Lettura lettura = letturaRepository.findById(id).orElseThrow(() -> new NotFoundException("Lettura non trovata"));
+        lettura.setAttiva(attiva);
+        if (attiva) disattivaAltre(lettura);
+        return letturaRepository.save(lettura);
+    }
+
+    /**
+     * Letture della fornitura usate per le fatture: quelle delle ultime date (al più numero) in cui cade la lettura
+     * iniziale o finale di una fattura, dalla più recente. Per ogni data ci sono tutte le letture, anche quelle
+     * disattivate e le copie manuali, così una lettura corretta resta accanto all'originale del fornitore.
+     */
+    public List<Lettura> lettureFatturate(Fornitura fornitura, int numero) {
+        Set<LocalDate> date = new TreeSet<>(Comparator.reverseOrder());
+        date.addAll(fatturaSingolaRepository.findDateLettureIniziali(fornitura));
+        date.addAll(fatturaSingolaRepository.findDateLettureFinali(fornitura));
+        List<LocalDate> ultime = date.stream().limit(numero).toList();
+        if (ultime.isEmpty()) return List.of();
+        return letturaRepository.findByFornituraAndDataLetturaInOrderByDataLetturaDescIdDesc(fornitura, ultime);
     }
 
     /**
@@ -417,23 +500,37 @@ public class LetturaService {
                 .findDataUltimaLetturaFatturata(fornitura, mesePrecedente.getMonthValue(), mesePrecedente.getYear());
         if (fatturata.isPresent()) return new PeriodoLetture(fatturata.get(), to, OrigineInizio.FATTURA_PRECEDENTE);
         return letturaRepository
-                .findFirstByFornituraAndRaccoltaAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, Lettura.RACCOLTA_SWITCH, fineMesePrecedente, to)
+                .findFirstByFornituraAndAttivaTrueAndRaccoltaAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, Lettura.RACCOLTA_SWITCH, fineMesePrecedente, to)
                 .map(l -> new PeriodoLetture(l.getDataLettura(), to, OrigineInizio.LETTURA_SWITCH))
                 .orElse(new PeriodoLetture(fineMesePrecedente, to, OrigineInizio.FINE_MESE_PRECEDENTE));
     }
 
     /**
-     * Letture del periodo della fattura del mese (periodoLetture), ordinate per data decrescente.
+     * Letture attive del periodo della fattura del mese (periodoLetture), ordinate per data decrescente.
      */
     public List<Lettura> lettureDelPeriodo(Fornitura fornitura, PeriodoLetture periodo) {
-        return letturaRepository.findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, periodo.dal(), periodo.al());
+        return letturaRepository.findByFornituraAndAttivaTrueAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, periodo.dal(), periodo.al());
     }
 
+    /**
+     * Letture su cui si calcola la fattura del mese, per data decrescente: quelle attive del periodo, oppure solo la
+     * prima e l'ultima se tra loro ce n'è una manuale (vedi primaEUltimaSeManuali).
+     */
     public List<Lettura> getLetture(Fornitura fornitura, int mese, int anno) {
         List<Lettura> letture = lettureDelPeriodo(fornitura, periodoLetture(fornitura, mese, anno));
         if (letture.size() < 2)
             throw new RuntimeException(fornitura.getId() + " non ci sono abbastanza letture per calcolare il consumo per il mese " + mese + " dell'anno " + anno);
-        return letture;
+        return primaEUltimaSeManuali(letture);
+    }
+
+    /**
+     * Se tra le letture ce n'è una manuale restano solo la prima e l'ultima (l'ordine è quello della lista): le
+     * intermedie del fornitore non sono coerenti con i valori corretti a mano, quindi il consumo è ultima - prima e il
+     * picco di potenza è quello dell'ultima. Senza letture manuali la lista resta com'è.
+     */
+    static List<Lettura> primaEUltimaSeManuali(List<Lettura> letture) {
+        if (letture.size() <= 2 || letture.stream().noneMatch(Lettura::isManuale)) return letture;
+        return new ArrayList<>(List.of(letture.get(0), letture.get(letture.size() - 1)));
     }
 
     /**
@@ -449,7 +546,7 @@ public class LetturaService {
         YearMonth ultimo = YearMonth.now();
         YearMonth primo = ultimo.minusMonths(mesi - 1L);
         List<Lettura> letture = letturaRepository
-                .findByFornituraAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, LocalDate.of(2000, 1, 1), ultimo.atEndOfMonth())
+                .findByFornituraAndAttivaTrueAndDataLetturaBetweenOrderByDataLetturaDesc(fornitura, LocalDate.of(2000, 1, 1), ultimo.atEndOfMonth())
                 .stream().sorted(Comparator.comparing(Lettura::getDataLettura)).toList();
         double[] costanti = costantiAttiva(letture);
         List<ConsumoMensileDTO> consumi = new ArrayList<>();
@@ -540,9 +637,9 @@ public class LetturaService {
     public Map<String, Double> getConsumi(List<Lettura> letture) {
         Map<String, Double> consumi = new HashMap<>();
         if (letture.size() < 2) throw new RuntimeException("Non ci sono abbastanza letture per calcolare il consumo");
-        List<Lettura> ordinate = letture.stream()
+        List<Lettura> ordinate = primaEUltimaSeManuali(letture.stream()
                 .sorted(Comparator.comparing(Lettura::getDataLettura))
-                .toList();
+                .toList());
         double eaF1 = 0, eaF2 = 0, eaF3 = 0, erF1 = 0, erF2 = 0, erF3 = 0, ercF1 = 0, ercF2 = 0, ercF3 = 0;
         double potMax = 0;
         // somma dei consumi tra letture consecutive (senza cambi contatore equivale a ultima - prima).
