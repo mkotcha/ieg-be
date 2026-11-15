@@ -146,7 +146,9 @@ The wholesale supplier bills IEG monthly with one invoice covering all PODs; its
 `POST /api/fatture-fornitore/upload` (`FatturaFornitoreService`) into `fatture_fornitore` / `voci_fatture_fornitore`.
 Re-importing the same invoice replaces its rows. Each row's competence month is the month of `Inizio Periodo`, so
 adjustments (`Tipo Ricalcolo`: reversal of the estimate, articles `*_A`, plus re-billing on actual readings) arriving
-in later invoices add up to the month they refer to.
+in later invoices add up to the month they refer to. Rows dated *after* the invoice's reference month (the month most
+of its rows fall in: stamp duty on the issue date, late fees, CMORE morosità events) are moved back to the reference
+month on import (`allineaAlMeseDiRiferimento`); earlier months are left alone.
 
 `ConfrontoFatturaService` (`GET /api/fatture/confronto?mese=&anno=` summary, `GET /api/fatture/{numero}/confronto`
 detail) maps both sides onto `VoceConfronto`: our lines by `VoceFatturaSingola.codice` (map in the service), the
@@ -158,6 +160,11 @@ match; the margin comes from energy, commercialisation and our capacity mark-up 
 paid by IEG directly (the supplier bills it at 0): neither pass-through nor margin. `COSTI_IEG` (prepayment, late fees,
 stamp duty, REMIT) are supplier charges to IEG not tied to a client: excluded per supply, totalled in the monthly
 summary.
+`GET /api/fatture-fornitore/pod-non-registrati?mese=&anno=` lists PODs that appear in the supplier rows of that
+competence month but not in `forniture`,
+with the data the summary provides to pre-fill their registration (latest row: `Classe utenza` → BTA, D2/D3/D4 → TD;
+powers; `Tipo Utenza` → BT/MT/AT; `Data Apertura Utenza` → switch date; IT001 → EDIST). Client, address and VAT are
+not in the summary (its "client" is always IEG).
 
 **Templates** (`template/pagina_1.xlsx` riepilogo, `pagina_2.xlsx` scontrino, `pagina_3.xlsx` dettaglio) contain **no
 formulas**: Java computes every value and `ExcelService` only writes into named cells. Detail lines are located by the

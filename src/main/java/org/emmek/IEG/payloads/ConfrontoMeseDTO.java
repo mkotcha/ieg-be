@@ -21,6 +21,10 @@ public record ConfrontoMeseDTO(
         List<ConfrontoFatturaDTO> fatture,
         List<PodSenzaFatturaDTO> podSenzaFattura
 ) {
-    public record PodSenzaFatturaDTO(String pod, boolean inAnagrafica, double importoFornitore) {
+    /**
+     * Pod con righe del fornitore nel mese ma senza una nostra fattura; cliente null se il pod non è in anagrafica.
+     */
+    public record PodSenzaFatturaDTO(String pod, boolean inAnagrafica, Long clienteId, String ragioneSociale,
+                                     double importoFornitore) {
     }
 }

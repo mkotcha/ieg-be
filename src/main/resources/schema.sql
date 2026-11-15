@@ -302,7 +302,10 @@ CREATE TABLE voci_fatture_fornitore (
     potenza_disponibile Double precision,
     unitario_originale Double precision,
     unitario_aggiuntivo Double precision,
-    spread Double precision
+    spread Double precision,
+    -- dati dell'utenza, per proporre la registrazione dei pod non in anagrafica
+    data_apertura date,
+    tipo_utenza character varying(255)
 );
 
 CREATE INDEX idx_voci_fatture_fornitore_competenza ON voci_fatture_fornitore (anno, mese, pod);

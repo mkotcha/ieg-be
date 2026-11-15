@@ -5,7 +5,11 @@ import org.emmek.IEG.entities.FatturaFornitore;
 import org.emmek.IEG.entities.VoceFatturaFornitore;
 import org.emmek.IEG.exceptions.BadRequestException;
 import org.emmek.IEG.exceptions.NotFoundException;
+import org.emmek.IEG.enums.BTA;
+import org.emmek.IEG.enums.CodiceDistributore;
+import org.emmek.IEG.enums.VoceConfronto;
 import org.emmek.IEG.payloads.EsitoImportFatturaFornitoreDTO;
+import org.emmek.IEG.payloads.PodNonRegistratoDTO;
 import org.emmek.IEG.repositories.FatturaFornitoreRepository;
 import org.emmek.IEG.repositories.FornituraRepository;
 import org.emmek.IEG.repositories.VoceFatturaFornitoreRepository;
@@ -21,8 +25,10 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -82,6 +88,60 @@ public class FatturaFornitoreService {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("anno"), anno));
         }
         return voceFatturaFornitoreRepository.findAll(spec, Sort.by("fatturaFornitore.id", "riga"));
+    }
+
+    /**
+     * Pod che compaiono nelle righe del fornitore di competenza del mese ma non sono in anagrafica, con i dati per
+     * proporne la registrazione presi dalla riga più recente del mese (fine periodo) e l'importo del mese.
+     */
+    @Transactional(readOnly = true)
+    public List<PodNonRegistratoDTO> podNonRegistrati(int mese, int anno) {
+        // senza i costi del fornitore verso IEG (bollo, mora...): un bollo datato all'emissione della bolletta del mese
+        // prima non deve far comparire il pod in questo mese (stesso criterio dei pod senza fattura del confronto)
+        MappaturaVoceFornitoreService.Mappatore mappatore = mappaturaService.mappatore();
+        Map<String, List<VoceFatturaFornitore>> perPod = voceFatturaFornitoreRepository.findPodNonRegistrati(mese, anno).stream()
+                .filter(v -> mappatore.voce(v) != VoceConfronto.COSTI_IEG)
+                .collect(Collectors.groupingBy(VoceFatturaFornitore::getPod, TreeMap::new, Collectors.toList()));
+        List<PodNonRegistratoDTO> esito = new ArrayList<>();
+        perPod.forEach((pod, righe) -> {
+            VoceFatturaFornitore ultima = righe.stream().max(Comparator
+                    .comparing((VoceFatturaFornitore v) -> v.getAnno() * 100 + v.getMese())
+                    .thenComparing(v -> v.getFinePeriodo() != null ? v.getFinePeriodo() : LocalDate.MIN)).orElseThrow();
+            esito.add(new PodNonRegistratoDTO(pod, bta(ultima.getClasseUtenza()), ultima.getPotenzaImpegnata(),
+                    ultima.getPotenzaDisponibile(), tipoPrelievo(ultima.getTipoUtenza()),
+                    pod.startsWith("IT001") ? CodiceDistributore.EDIST.name() : null,
+                    righe.stream().map(VoceFatturaFornitore::getDataApertura).filter(Objects::nonNull)
+                            .min(Comparator.naturalOrder()).orElse(null),
+                    ultima.getMese(), ultima.getAnno(),
+                    arrotonda(righe.stream().mapToDouble(VoceFatturaFornitore::getImporto).sum()),
+                    righe.stream().map(VoceFatturaFornitore::getNumeroFattura).distinct().sorted().toList()));
+        });
+        return esito;
+    }
+
+    /**
+     * Classe utenza del fornitore se è un valore di BTA (BTA1...); le classi domestiche (D2, D3, D4...) sono TD.
+     */
+    private static String bta(String classeUtenza) {
+        if (classeUtenza == null) return null;
+        String classe = classeUtenza.trim().toUpperCase();
+        if (classe.matches("D\\d+")) return BTA.TD.name();
+        return Arrays.stream(BTA.values()).map(Enum::name).filter(b -> b.equals(classe)).findFirst().orElse(null);
+    }
+
+    /**
+     * Livello di tensione dal tipo utenza del fornitore: "ALTRI USI BT RE" e "ALTRI USI BTA6 RE" -> BT; le
+     * domestiche sono sempre in bassa tensione.
+     */
+    private static String tipoPrelievo(String tipoUtenza) {
+        if (tipoUtenza == null) return null;
+        String tipo = tipoUtenza.toUpperCase();
+        if (tipo.startsWith("DOMESTIC")) return "BT";
+        for (String parola : tipo.split("\\s+")) {
+            if (parola.equals("BT") || parola.matches("BTA\\d*")) return "BT";
+            if (parola.equals("MT") || parola.equals("AT")) return parola;
+        }
+        return null;
     }
 
     /**
@@ -157,6 +217,7 @@ public class FatturaFornitoreService {
             FatturaFornitore fattura = esistente.orElseGet(FatturaFornitore::new);
             esistente.ifPresent(voceFatturaFornitoreRepository::deleteByFatturaFornitore);
 
+            allineaAlMeseDiRiferimento(voci);
             double totale = voci.stream().mapToDouble(VoceFatturaFornitore::getImporto).sum();
             fattura.setNumero(numero);
             fattura.setDataEmissione(date.get(numero)[0]);
@@ -181,6 +242,25 @@ public class FatturaFornitoreService {
         return esiti;
     }
 
+    /**
+     * Le righe datate dopo il mese di riferimento della bolletta (quello della maggior parte delle righe, cioè dei
+     * consumi fatturati) passano al mese di riferimento: sono addebiti legati a un evento e non a un periodo di
+     * consumo (bollo e mora datati all'emissione o all'incasso, corrispettivi di morosità), che altrimenti
+     * finirebbero nel mese dopo. Le righe dei mesi precedenti (conguagli) restano nel loro mese.
+     */
+    private static void allineaAlMeseDiRiferimento(List<VoceFatturaFornitore> voci) {
+        YearMonth riferimento = voci.stream()
+                .collect(Collectors.groupingBy(v -> YearMonth.of(v.getAnno(), v.getMese()), Collectors.counting()))
+                .entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+        if (riferimento == null) return;
+        for (VoceFatturaFornitore v : voci) {
+            if (YearMonth.of(v.getAnno(), v.getMese()).isAfter(riferimento)) {
+                v.setMese(riferimento.getMonthValue());
+                v.setAnno(riferimento.getYear());
+            }
+        }
+    }
+
     private VoceFatturaFornitore leggiVoce(Riga r, int n) {
         VoceFatturaFornitore v = new VoceFatturaFornitore();
         Double importo = r.numero("Totale Imponibile");
@@ -191,7 +271,8 @@ public class FatturaFornitoreService {
         v.setClasseUtenza(r.testo("Classe utenza"));
         v.setInizioPeriodo(r.data("Inizio Periodo"));
         v.setFinePeriodo(r.data("Fine Periodo"));
-        // competenza: mese di inizio periodo (anche per le righe a cavallo di due mesi)
+        // competenza: mese di inizio periodo (anche per le righe a cavallo di due mesi); quelle datate dopo il mese di
+        // riferimento della bolletta vengono poi riportate a quel mese (allineaAlMeseDiRiferimento)
         LocalDate competenza = v.getInizioPeriodo() != null ? v.getInizioPeriodo()
                 : v.getFinePeriodo() != null ? v.getFinePeriodo() : r.data("Data Emissione");
         if (competenza == null) throw new IllegalArgumentException("periodo mancante");
@@ -213,6 +294,8 @@ public class FatturaFornitoreService {
         v.setTipoMercato(r.testo("Tipo Mercato"));
         v.setPotenzaImpegnata(r.numero("Potenza Impegnata kW"));
         v.setPotenzaDisponibile(r.numero("Potenza Disponibile kW"));
+        v.setDataApertura(r.data("Data Apertura Utenza"));
+        v.setTipoUtenza(r.testo("Tipo Utenza"));
         v.setUnitarioOriginale(r.numero("Unitario Originale"));
         v.setUnitarioAggiuntivo(r.numero("Unitario Aggiuntivo"));
         v.setSpread(r.numero("Spread"));

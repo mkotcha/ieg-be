@@ -102,6 +102,14 @@ public class VoceFatturaFornitore {
 
     private Double spread;
 
+    // data di apertura dell'utenza presso il fornitore (inizio fornitura)
+    @Column(name = "data_apertura")
+    private LocalDate dataApertura;
+
+    // es. "ALTRI USI BT RE": contiene il livello di tensione (BT/MT/AT)
+    @Column(name = "tipo_utenza")
+    private String tipoUtenza;
+
     public boolean isRicalcolo() {
         return tipoRicalcolo != null && !tipoRicalcolo.isBlank();
     }

@@ -6,6 +6,7 @@ import org.emmek.IEG.entities.VoceFatturaFornitore;
 import org.emmek.IEG.exceptions.BadRequestException;
 import org.emmek.IEG.payloads.EsitoImportFatturaFornitoreDTO;
 import org.emmek.IEG.payloads.MappaturaVoceFornitoreDTO;
+import org.emmek.IEG.payloads.PodNonRegistratoDTO;
 import org.emmek.IEG.payloads.TariffaNonMappataDTO;
 import org.emmek.IEG.services.FatturaFornitoreService;
 import org.emmek.IEG.services.MappaturaVoceFornitoreService;
@@ -67,6 +68,15 @@ public class FatturaFornitoreController {
     @PreAuthorize("hasAuthority('ADMIN')")
     public void delete(@PathVariable String numero) {
         fatturaFornitoreService.delete(numero);
+    }
+
+    /**
+     * Pod presenti nelle righe del fornitore di competenza del mese ma non in anagrafica, con i dati proposti per
+     * registrarli.
+     */
+    @GetMapping("/pod-non-registrati")
+    public List<PodNonRegistratoDTO> podNonRegistrati(@RequestParam int mese, @RequestParam int anno) {
+        return fatturaFornitoreService.podNonRegistrati(mese, anno);
     }
 
     @GetMapping("/mappature")

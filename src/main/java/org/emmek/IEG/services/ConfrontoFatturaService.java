@@ -126,10 +126,15 @@ public class ConfrontoFatturaService {
 
         double costiIeg = tutte.stream().filter(r -> mappatore.voce(r) == COSTI_IEG)
                 .mapToDouble(VoceFatturaFornitore::getImporto).sum();
-        Set<String> podAnagrafica = new HashSet<>(fornituraRepository.getListaPod());
+        // forniture in anagrafica dei pod senza fattura, per il cliente
+        Map<String, Fornitura> anagrafica = new HashMap<>();
+        fornituraRepository.findAllById(righe.keySet().stream().filter(pod -> !podFatturati.contains(pod)).toList())
+                .forEach(f -> anagrafica.put(f.getId(), f));
         List<ConfrontoMeseDTO.PodSenzaFatturaDTO> podSenzaFattura = righe.entrySet().stream()
                 .filter(e -> !podFatturati.contains(e.getKey()))
-                .map(e -> new ConfrontoMeseDTO.PodSenzaFatturaDTO(e.getKey(), podAnagrafica.contains(e.getKey()),
+                .map(e -> new ConfrontoMeseDTO.PodSenzaFatturaDTO(e.getKey(), anagrafica.containsKey(e.getKey()),
+                        anagrafica.containsKey(e.getKey()) ? anagrafica.get(e.getKey()).getCliente().getId() : null,
+                        anagrafica.containsKey(e.getKey()) ? anagrafica.get(e.getKey()).getCliente().getRagioneSociale() : null,
                         arrotonda(e.getValue().stream().filter(r -> mappatore.voce(r) != COSTI_IEG)
                                 .mapToDouble(VoceFatturaFornitore::getImporto).sum())))
                 .filter(p -> p.importoFornitore() != 0)
