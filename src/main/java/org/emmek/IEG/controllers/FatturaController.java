@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.emmek.IEG.payloads.ConfrontoFatturaDTO;
 import org.emmek.IEG.payloads.ConfrontoMeseDTO;
 import org.emmek.IEG.payloads.EsitoFatturaDTO;
+import org.emmek.IEG.payloads.ParteZipDTO;
 import org.emmek.IEG.services.ConfrontoFatturaService;
 import org.emmek.IEG.services.FatturaService;
 import org.emmek.IEG.services.GenerazioneFattureService;
+import org.emmek.IEG.services.ZipFattureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -56,6 +59,9 @@ public class FatturaController {
 
     @Autowired
     private FatturaRepository fatturaRepository;
+
+    @Autowired
+    private ZipFattureService zipFattureService;
 
     /**
      * Avvia in background la generazione delle fatture del mese di consumo indicato per tutti i clienti attivi e
@@ -100,6 +106,33 @@ public class FatturaController {
     @GetMapping("/{numeroFattura}/confronto")
     public ConfrontoFatturaDTO confronto(@PathVariable String numeroFattura) {
         return confrontoFatturaService.confronta(numeroFattura);
+    }
+
+    /**
+     * Parti in cui sono divisi i pdf delle fatture del mese per l'invio via email (ognuna sotto fatture.zip.max-mb).
+     */
+    @GetMapping("/zip")
+    public List<ParteZipDTO> partiZip(@RequestParam int mese, @RequestParam int anno) throws IOException {
+        return zipFattureService.parti(mese, anno);
+    }
+
+    /**
+     * Zip di una parte (da 1) dei pdf delle fatture del mese; il nome del file è in X-Filename come per i pdf.
+     */
+    @GetMapping(value = "/zip/{parte}", produces = "application/zip")
+    public ResponseEntity<StreamingResponseBody> zip(@RequestParam int mese, @RequestParam int anno,
+                                                     @PathVariable int parte) throws IOException {
+        List<ParteZipDTO> parti = zipFattureService.parti(mese, anno);
+        if (parte < 1 || parte > parti.size()) throw new NotFoundException("Parte " + parte + " non trovata");
+        String nomeFile = parti.get(parte - 1).nomeFile();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename(nomeFile, StandardCharsets.UTF_8).build());
+        headers.add("Access-Control-Expose-Headers", "X-Filename");
+        headers.add("X-Filename", nomeFile);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(out -> zipFattureService.scriviZip(mese, anno, parte, out));
     }
 
     @GetMapping(value = "/{numeroFattura}/pdf")
