@@ -26,7 +26,7 @@ Linux and Windows.
 
 Configuration lives in `src/main/resources/application.properties`, which imports `env.properties` (gitignored, not
 committed) for secrets: `PG_PASSWORD`, `JWT_SECRET`, `CLOUDINARY_*`, `SENDGRID_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_*`,
-`SECURITY_PASSWORD`, `PORT_SERVER`. A local `env.properties` file must exist (with these keys) before the app will
+`SECURITY_PASSWORD`, `PORT_SERVER`, and optionally `DB_DUMP_COMANDO` (the pg_dump command used by `GET /api/db/dump`, default `pg_dump`; e.g. `podman exec -e PGPASSWORD postgres pg_dump` when pg_dump only exists in the Postgres container). A local `env.properties` file must exist (with these keys) before the app will
 start. `spring.jpa.hibernate.ddl-auto=none` — the schema is **not** generated from entities: it is maintained by hand in
 `src/main/resources/schema.sql`. When adding/changing entity columns or tables, update `schema.sql` **and** apply the
 matching `ALTER TABLE`/`CREATE TABLE` to the local DB, otherwise Hibernate fails at runtime with "column … does not
