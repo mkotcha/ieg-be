@@ -44,3 +44,6 @@ env.properties
 ### Python ###
 __pycache__/
 *.pyc
+
+### template fatture (Excel/VBA, non più usati) ###
+template/
