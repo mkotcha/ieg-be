@@ -66,6 +66,27 @@ class PdfFatturaServiceTest {
         }
     }
 
+    @Test
+    void maggiorazioneSbilanciamentoNonEsplicitataMaDentroIlDispacciamento() throws IOException {
+        Fattura fattura = fatturaDiEsempio(1);
+        FatturaSingola fs = fattura.getFattureSingole().get(0);
+        fs.getFornitura().getOfferta().setMaggiorazioneSbilanciamento(true);
+        new CalcoloFatturaService().calcola(fs, CalcoloFatturaServiceTest.punDiEsempio());
+        int vociPrima = fs.getVoci().size();
+
+        try (PDDocument documento = Loader.loadPDF(new PdfFatturaService().pdf(fattura))) {
+            String testo = new PDFTextStripper().getText(documento);
+            assertTrue(!testo.contains("Maggiorazione Sbilanciamento"));
+            // dis + capacità + sbilanciamento (0,015223) + maggiorazione 0,01, su dispacciamento e perdite
+            assertTrue(testo.contains("0,025223"));
+            assertTrue(!testo.contains("0,015223"));
+        }
+        // le voci della fattura (entità) non sono toccate dal pdf
+        assertEquals(vociPrima, fs.getVoci().size());
+        assertEquals(0.015223, fs.getVoci().stream().filter(v -> v.getCodice().equals("dispacciamento"))
+                .findFirst().orElseThrow().getUnitario(), 1e-9);
+    }
+
     private static Fattura fatturaDiEsempio(int forniture) {
         Cliente cliente = new Cliente();
         cliente.setId(7L);

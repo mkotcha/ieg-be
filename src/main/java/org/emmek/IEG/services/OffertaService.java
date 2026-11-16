@@ -69,6 +69,7 @@ public class OffertaService {
         offerta.setPun(body.pun());
         offerta.setCapacitaMaggiorazione(body.capacitaMaggiorazione());
         offerta.setMaggiorazione(body.maggiorazione());
+        offerta.setMaggiorazioneSbilanciamento(body.maggiorazioneSbilanciamento());
         offerta.setHasSpread(body.hasSpread());
         offerta.setSpread(body.spread());
         offerta.setOcv(body.ocv());

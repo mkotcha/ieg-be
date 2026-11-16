@@ -52,6 +52,8 @@ public class ConfrontoFatturaService {
             Map.entry("perdite_dispacciamento", DISPACCIAMENTO),
             Map.entry("maggiorazione_capacita", MAGGIORAZIONE_CAPACITA),
             Map.entry("perdite_maggiorazione_capacita", MAGGIORAZIONE_CAPACITA),
+            Map.entry("maggiorazione_sbilanciamento", MAGGIORAZIONE_SBILANCIAMENTO),
+            Map.entry("perdite_maggiorazione_sbilanciamento", MAGGIORAZIONE_SBILANCIAMENTO),
             Map.entry("aggregazione", QUOTE_FISSE_DISPACCIAMENTO),
             Map.entry("qf_dbt", QUOTE_FISSE_DISPACCIAMENTO),
             Map.entry("qe_tud", DISTRIBUZIONE),

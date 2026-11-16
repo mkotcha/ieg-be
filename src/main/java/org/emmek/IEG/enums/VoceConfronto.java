@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * Voci comuni su cui si confrontano le nostre fatture con le righe della fattura del fornitore.
  * Passante: costo che giriamo al cliente così com'è, quindi nostro importo e del fornitore devono coincidere;
- * sulle altre (energia, commercializzazione, maggiorazione capacità) la differenza è il margine.
+ * sulle altre (energia, commercializzazione, maggiorazioni capacità e sbilanciamento) la differenza è il margine.
  */
 @Getter
 public enum VoceConfronto {
@@ -19,6 +19,8 @@ public enum VoceConfronto {
     DISPACCIAMENTO("Dispacciamento", true),
     // nostra maggiorazione sul corrispettivo capacità: il fornitore non ce l'ha, è margine
     MAGGIORAZIONE_CAPACITA("Maggiorazione capacità", false),
+    // nostra maggiorazione sullo sbilanciamento (offerte con maggiorazione_sbilanciamento): è margine
+    MAGGIORAZIONE_SBILANCIAMENTO("Maggiorazione sbilanciamento", false),
     QUOTE_FISSE_DISPACCIAMENTO("Quote fisse dispacciamento", true),
     DISTRIBUZIONE("Quota energia distribuzione e misura", true),
     TRASMISSIONE("Trasmissione", true),

@@ -19,6 +19,7 @@ public record OffertaDTO(
         boolean pun,
         boolean capacitaMaggiorazione,
         Double maggiorazione,
+        boolean maggiorazioneSbilanciamento,
         boolean hasSpread,
         Double spread,
         Double ocv,
