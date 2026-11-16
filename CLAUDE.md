@@ -194,13 +194,13 @@ The template has **no logic or number formatting**: Java puts already formatted 
 Until Nov 2026 invoices were produced by filling Excel templates and driving Excel via COM (`ExcelService`,
 `script/componiFattura.py`, see git history), which also produced an xlsx: old invoices still have `Fattura.xlsx` and
 `GET /api/fatture/{numero}/xlsx` serves it (404 for the new ones; regenerating an invoice clears the field). The old
-templates (`template/pagina_*.xlsx`, gitignored) and the VBA macros the calculation was ported from (`template/*.bas`)
-are no longer used by the code.
+templates (`template/pagina_*.xlsx`) and the VBA macros the calculation was ported from (`template/*.bas`) are no
+longer used by the code; the whole `template/` folder is gitignored and exists only locally.
 
 ## Notes / gotchas
 
-- `data/`, `fatture/`, `log/`, and all `*.xlsx` files are gitignored — the ones present locally are working data, not
-  fixtures to keep in sync with commits.
+- `data/`, `fatture/`, `log/`, `template/`, and all `*.xlsx` files are gitignored — the ones present locally are
+  working data, not fixtures to keep in sync with commits.
 - About 830 old readings (≤ Jan 2026, from the bootstrap Excel import) have `ka = 0`; `getConsumi` would turn them
   into zero consumption followed by a spike. They are older than any invoice period; the monthly consumption chart
   (`GET /api/forniture/{pod}/consumi`, `LetturaService.consumiMensili`; `GET /api/clienti/{id}/consumi` sums all the
