@@ -37,6 +37,37 @@ public class CalcoloFatturaService {
     // maggiorazione sullo sbilanciamento per le offerte con maggiorazione_sbilanciamento (€/kWh), in righe proprie
     private static final double MAGGIORAZIONE_SBILANCIAMENTO = 0.01;
 
+    /**
+     * Reattiva compresa tra il 33% e il 75% dell'attiva, calcolata fascia per fascia solo in F1 e F2
+     * (come nella fattura del fornitore): somma di min(R, 75% A) - 33% A.
+     */
+    static double reattiva33(FatturaSingola fs) {
+        return quotaReattiva(fs.getConsumoF1(), fs.getConsumoF1r(), 0.33, 0.75)
+                + quotaReattiva(fs.getConsumoF2(), fs.getConsumoF2r(), 0.33, 0.75);
+    }
+
+    /**
+     * Reattiva oltre il 75% dell'attiva, fascia per fascia solo in F1 e F2: somma di R - 75% A.
+     */
+    static double reattiva75(FatturaSingola fs) {
+        return quotaReattiva(fs.getConsumoF1(), fs.getConsumoF1r(), 0.75, Double.POSITIVE_INFINITY)
+                + quotaReattiva(fs.getConsumoF2(), fs.getConsumoF2r(), 0.75, Double.POSITIVE_INFINITY);
+    }
+
+    /**
+     * Parte della reattiva di una fascia compresa tra soglia (frazione dell'attiva) e limite (frazione dell'attiva).
+     */
+    private static double quotaReattiva(Double attiva, Double reattiva, double soglia, double limite) {
+        double a = nvl(attiva);
+        double r = nvl(reattiva);
+        double massimo = Double.isInfinite(limite) ? r : Math.min(r, limite * a);
+        return Math.max(0, massimo - soglia * a);
+    }
+
+    private static double nvl(Double valore) {
+        return valore != null ? valore : 0;
+    }
+
     public void calcola(FatturaSingola fs, Pun pun) {
         calcola(fs, pun, List.of());
     }
@@ -117,7 +148,7 @@ public class CalcoloFatturaService {
         v.add("trasmissione", "Trasmissione Energia", TRASPORTO, RETE, KWH, nvl(oneri.getTrasmissione()), consumo);
         v.add("reattiva_33", "Energia Reattiva immessa tra 33% e 75%", TRASPORTO, RETE, KVARH, PREZZO_REATTIVA_33, reattiva ? reattiva33(fs) : 0);
         v.add("reattiva_75", "Energia Reattiva immessa oltre 75%", TRASPORTO, RETE, KVARH, PREZZO_REATTIVA_75, reattiva ? reattiva75(fs) : 0);
-        v.add("reattiva_immessa", "Energia Reattiva Capacitiva Immessa F3", TRASPORTO, RETE, KVARH, PREZZO_REATTIVA_IMMESSA, reattiva ? nvl(fs.getConsumoF3rc()) : 0);
+        v.add("reattiva_immessa", "Energia Capacitiva Immessa F3", TRASPORTO, RETE, KVARH, PREZZO_REATTIVA_IMMESSA, reattiva ? nvl(fs.getConsumoF3rc()) : 0);
         v.add("qf_tud", "Quota Fissa - Distribuzione", TRASPORTO, FISSA_RETE, PDP, nvl(oneri.getQfTud()), 1);
         v.add("qf_mis", "Quota Fissa - Misura", TRASPORTO, FISSA_VENDITA, PDP, nvl(oneri.getQfMis()), 1);
         v.add("qf_uc6", "Quota Fissa - Oneri di Sistema UC6", TRASPORTO, FISSA_RETE, PDP, nvl(oneri.getQfUc6()), 1);
@@ -188,6 +219,10 @@ public class CalcoloFatturaService {
             fs.getVoci().clear();
         }
 
+        private static double somma(List<VoceFatturaSingola> voci) {
+            return voci.stream().mapToDouble(VoceFatturaSingola::getImporto).sum();
+        }
+
         void add(String codice, String descrizione, SezioneFattura sezione, GruppoScontrino gruppo,
                  String unita, double unitario, double quantita) {
             VoceFatturaSingola voce = new VoceFatturaSingola();
@@ -219,40 +254,5 @@ public class CalcoloFatturaService {
         double totale(GruppoScontrino gruppo) {
             return somma(fs.getVoci().stream().filter(v -> v.getGruppoScontrino() == gruppo).toList());
         }
-
-        private static double somma(List<VoceFatturaSingola> voci) {
-            return voci.stream().mapToDouble(VoceFatturaSingola::getImporto).sum();
-        }
-    }
-
-    /**
-     * Reattiva compresa tra il 33% e il 75% dell'attiva, calcolata fascia per fascia solo in F1 e F2
-     * (come nella fattura del fornitore): somma di min(R, 75% A) - 33% A.
-     */
-    static double reattiva33(FatturaSingola fs) {
-        return quotaReattiva(fs.getConsumoF1(), fs.getConsumoF1r(), 0.33, 0.75)
-                + quotaReattiva(fs.getConsumoF2(), fs.getConsumoF2r(), 0.33, 0.75);
-    }
-
-    /**
-     * Reattiva oltre il 75% dell'attiva, fascia per fascia solo in F1 e F2: somma di R - 75% A.
-     */
-    static double reattiva75(FatturaSingola fs) {
-        return quotaReattiva(fs.getConsumoF1(), fs.getConsumoF1r(), 0.75, Double.POSITIVE_INFINITY)
-                + quotaReattiva(fs.getConsumoF2(), fs.getConsumoF2r(), 0.75, Double.POSITIVE_INFINITY);
-    }
-
-    /**
-     * Parte della reattiva di una fascia compresa tra soglia (frazione dell'attiva) e limite (frazione dell'attiva).
-     */
-    private static double quotaReattiva(Double attiva, Double reattiva, double soglia, double limite) {
-        double a = nvl(attiva);
-        double r = nvl(reattiva);
-        double massimo = Double.isInfinite(limite) ? r : Math.min(r, limite * a);
-        return Math.max(0, massimo - soglia * a);
-    }
-
-    private static double nvl(Double valore) {
-        return valore != null ? valore : 0;
     }
 }
