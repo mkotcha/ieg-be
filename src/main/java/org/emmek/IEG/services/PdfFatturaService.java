@@ -62,6 +62,11 @@ public class PdfFatturaService {
             "Spesa per trasporto, gestione contatore", "Imposte", "Altre partite", "IVA");
     // righe del dettaglio omesse quando l'importo è 0 (es. la rettifica, che hanno solo alcune forniture)
     private static final Set<String> RIGHE_NASCOSTE_SE_ZERO = Set.of("rettifica");
+    // voci che nel pdf non si vedono: sono sommate (prezzo unitario e importo) alla voce indicata, con la stessa
+    // quantità. In DB restano separate perché nel confronto col fornitore sono margine e non passanti
+    private static final Map<String, String> RIGHE_ACCORPATE = Map.of(
+            "maggiorazione_sbilanciamento", "dispacciamento",
+            "perdite_maggiorazione_sbilanciamento", "perdite_dispacciamento");
 
     /**
      * Gruppo di righe del dettaglio: titolo in grassetto (null = nessuno) e codici delle voci, nell'ordine.
@@ -355,6 +360,11 @@ public class PdfFatturaService {
             if (RIGHE_NASCOSTE_SE_ZERO.contains(voce.getCodice()) && nvl(voce.getImporto()) == 0) continue;
             voci.put(voce.getCodice(), voce);
         }
+        RIGHE_ACCORPATE.forEach((codice, destinazione) -> {
+            VoceFatturaSingola voce = voci.remove(codice);
+            VoceFatturaSingola dest = voci.get(destinazione);
+            if (voce != null && dest != null) voci.put(destinazione, somma(dest, voce));
+        });
 
         List<Map<String, Object>> sezioni = new ArrayList<>();
         for (Sezione sezione : SEZIONI) {
@@ -405,6 +415,27 @@ public class PdfFatturaService {
         gruppo.put("titolo", titolo);
         gruppo.put("righe", righe);
         return gruppo;
+    }
+
+    /**
+     * Copia della voce con prezzo unitario e importo aumentati di quelli dell'altra (stessa quantità). Una copia:
+     * la voce è un'entità e non va modificata.
+     */
+    private static VoceFatturaSingola somma(VoceFatturaSingola voce, VoceFatturaSingola altra) {
+        VoceFatturaSingola copia = new VoceFatturaSingola();
+        copia.setCodice(voce.getCodice());
+        copia.setDescrizione(voce.getDescrizione());
+        copia.setSezione(voce.getSezione());
+        copia.setGruppoScontrino(voce.getGruppoScontrino());
+        copia.setDal(voce.getDal());
+        copia.setAl(voce.getAl());
+        copia.setUnita(voce.getUnita());
+        copia.setUnitario(nvl(voce.getUnitario()) + nvl(altra.getUnitario()));
+        copia.setQuantita(voce.getQuantita());
+        copia.setImporto(nvl(voce.getImporto()) + nvl(altra.getImporto()));
+        copia.setIva(voce.getIva());
+        copia.setOrdine(voce.getOrdine());
+        return copia;
     }
 
     private static Map<String, String> riga(VoceFatturaSingola voce, boolean scaglioni) {

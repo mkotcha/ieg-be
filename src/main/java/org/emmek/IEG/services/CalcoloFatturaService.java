@@ -34,6 +34,8 @@ public class CalcoloFatturaService {
     private static final double PREZZO_REATTIVA_IMMESSA = 0.01088;
     // addizionale erariale se non indicata in tabella oneri
     private static final double ACCISE_DEFAULT = 0.0125;
+    // maggiorazione sullo sbilanciamento per le offerte con maggiorazione_sbilanciamento (€/kWh), in righe proprie
+    private static final double MAGGIORAZIONE_SBILANCIAMENTO = 0.01;
 
     public void calcola(FatturaSingola fs, Pun pun) {
         calcola(fs, pun, List.of());
@@ -89,6 +91,11 @@ public class CalcoloFatturaService {
         v.add("spread", "Spread su P.U.N.", MATERIA, VENDITA, KWH, offerta.getSpreadEffettivo(), consumoConPerdite);
         v.add("dispacciamento", "Dispacciamento", MATERIA, VENDITA, KWH, dispacciamento, consumo);
         v.add("perdite_dispacciamento", "Perdite Dispacciamento", MATERIA, VENDITA, KWH, dispacciamento, perdite);
+        // righe proprie e non dentro il dispacciamento: il dispacciamento è passante, la maggiorazione è margine
+        if (offerta.isMaggiorazioneSbilanciamento()) {
+            v.add("maggiorazione_sbilanciamento", "Maggiorazione Sbilanciamento", MATERIA, VENDITA, KWH, MAGGIORAZIONE_SBILANCIAMENTO, consumo);
+            v.add("perdite_maggiorazione_sbilanciamento", "Perdite Maggiorazione Sbilanciamento", MATERIA, VENDITA, KWH, MAGGIORAZIONE_SBILANCIAMENTO, perdite);
+        }
         v.add("commercializzazione", "Prezzo commercializzazione vendita", MATERIA, FISSA_VENDITA, PDP, nvl(offerta.getOcf()), 1);
         if (offerta.getModalitaProgrammazione() == ModalitaProgrammazione.CLASSIC) {
             // percentuale sulla spesa per energia: quote energia F1-F3, relative perdite e spread

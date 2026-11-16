@@ -51,6 +51,10 @@ public class Offerta {
     @Column(name = "maggiorazione")
     private Double maggiorazione;
 
+    // se attivo in fattura si aggiunge la maggiorazione sbilanciamento di 0,01 €/kWh (righe proprie, è margine)
+    @Column(name = "maggiorazione_sbilanciamento", nullable = false)
+    private boolean maggiorazioneSbilanciamento;
+
     @Column(name = "has_spread")
     private boolean hasSpread;
 

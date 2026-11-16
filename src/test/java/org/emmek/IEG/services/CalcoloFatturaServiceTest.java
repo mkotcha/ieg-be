@@ -62,6 +62,36 @@ class CalcoloFatturaServiceTest {
     }
 
     @Test
+    void maggiorazioneSbilanciamentoInRigheProprieSenzaToccareIlDispacciamento() {
+        FatturaSingola base = fatturaDiEsempio();
+        new CalcoloFatturaService().calcola(base, punDiEsempio());
+        FatturaSingola fs = fatturaDiEsempio();
+        fs.getFornitura().getOfferta().setMaggiorazioneSbilanciamento(true);
+        new CalcoloFatturaService().calcola(fs, punDiEsempio());
+
+        // il dispacciamento resta passante, uguale a quello senza maggiorazione
+        for (String codice : List.of("dispacciamento", "perdite_dispacciamento")) {
+            assertEquals(voce(base, codice).getImporto(), voce(fs, codice).getImporto(), 1e-9);
+        }
+        VoceFatturaSingola maggiorazione = voce(fs, "maggiorazione_sbilanciamento");
+        VoceFatturaSingola perdite = voce(fs, "perdite_maggiorazione_sbilanciamento");
+        assertEquals(0.01, maggiorazione.getUnitario(), 1e-9);
+        assertEquals(voce(fs, "dispacciamento").getQuantita(), maggiorazione.getQuantita());
+        assertEquals(0.01, perdite.getUnitario(), 1e-9);
+        assertEquals(voce(fs, "perdite_dispacciamento").getQuantita(), perdite.getQuantita());
+        assertEquals(base.getTotaleMateria() + 0.01 * (maggiorazione.getQuantita() + perdite.getQuantita()),
+                fs.getTotaleMateria(), 1e-9);
+        assertEquals(base.getVoci().size() + 2, fs.getVoci().size());
+    }
+
+    @Test
+    void senzaMaggiorazioneSbilanciamentoNessunaRiga() {
+        FatturaSingola fs = fatturaDiEsempio();
+        new CalcoloFatturaService().calcola(fs, punDiEsempio());
+        assertEquals(0, fs.getVoci().stream().filter(v -> v.getCodice().contains("sbilanciamento")).count());
+    }
+
+    @Test
     void reattivaImmessaSoloF3PerBta6() {
         FatturaSingola fs = fatturaDiEsempio();
         // immessa di CALYPSO a ottobre 2026: il fornitore fattura solo la F3 (27,556 -> 28 kVArh)

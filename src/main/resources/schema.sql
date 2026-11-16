@@ -198,6 +198,7 @@ CREATE TABLE offerte (
     f3 Double precision,
     has_spread boolean,
     spread Double precision,
+    maggiorazione_sbilanciamento boolean NOT NULL DEFAULT false,
     data_inizio date,
     data_fine date,
     descrizione character varying(255),
