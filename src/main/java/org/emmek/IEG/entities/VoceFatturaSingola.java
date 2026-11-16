@@ -11,7 +11,7 @@ import org.emmek.IEG.enums.SezioneFattura;
 import java.time.LocalDate;
 
 /**
- * Riga del dettaglio di una fattura singola (pagina 3 della fattura): importo = unitario * quantita.
+ * Riga del dettaglio di una fattura singola (allegato di dettaglio della fattura): importo = unitario * quantita.
  */
 @Entity
 @Table(name = "voci_fatture_singole")
@@ -29,7 +29,7 @@ public class VoceFatturaSingola {
     private FatturaSingola fatturaSingola;
 
     /**
-     * Identificativo della voce: corrisponde alla cella con nome voce_[codice] del template pagina_3.
+     * Identificativo della voce (es. energia_f1): usato per raggrupparle nel pdf e per il confronto col fornitore.
      */
     @Column(nullable = false)
     private String codice;

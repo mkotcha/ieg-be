@@ -3,6 +3,7 @@ package org.emmek.IEG.controllers;
 import lombok.extern.slf4j.Slf4j;
 import org.emmek.IEG.entities.Fattura;
 import org.emmek.IEG.enums.TipoLavoro;
+import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.model.Lavoro;
 import org.emmek.IEG.services.LavoroService;
 import org.emmek.IEG.repositories.FatturaRepository;
@@ -12,9 +13,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.emmek.IEG.payloads.ConfrontoFatturaDTO;
 import org.emmek.IEG.payloads.ConfrontoMeseDTO;
 import org.emmek.IEG.payloads.EsitoFatturaDTO;
+import org.emmek.IEG.payloads.ParteZipDTO;
 import org.emmek.IEG.services.ConfrontoFatturaService;
 import org.emmek.IEG.services.FatturaService;
 import org.emmek.IEG.services.GenerazioneFattureService;
+import org.emmek.IEG.services.ZipFattureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
@@ -28,11 +31,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -54,6 +59,9 @@ public class FatturaController {
 
     @Autowired
     private FatturaRepository fatturaRepository;
+
+    @Autowired
+    private ZipFattureService zipFattureService;
 
     /**
      * Avvia in background la generazione delle fatture del mese di consumo indicato per tutti i clienti attivi e
@@ -100,12 +108,42 @@ public class FatturaController {
         return confrontoFatturaService.confronta(numeroFattura);
     }
 
+    /**
+     * Parti in cui sono divisi i pdf delle fatture del mese per l'invio via email (ognuna sotto fatture.zip.max-mb).
+     */
+    @GetMapping("/zip")
+    public List<ParteZipDTO> partiZip(@RequestParam int mese, @RequestParam int anno) throws IOException {
+        return zipFattureService.parti(mese, anno);
+    }
+
+    /**
+     * Zip di una parte (da 1) dei pdf delle fatture del mese; il nome del file è in X-Filename come per i pdf.
+     */
+    @GetMapping(value = "/zip/{parte}", produces = "application/zip")
+    public ResponseEntity<StreamingResponseBody> zip(@RequestParam int mese, @RequestParam int anno,
+                                                     @PathVariable int parte) throws IOException {
+        List<ParteZipDTO> parti = zipFattureService.parti(mese, anno);
+        if (parte < 1 || parte > parti.size()) throw new NotFoundException("Parte " + parte + " non trovata");
+        String nomeFile = parti.get(parte - 1).nomeFile();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDisposition(ContentDisposition.attachment().filename(nomeFile, StandardCharsets.UTF_8).build());
+        headers.add("Access-Control-Expose-Headers", "X-Filename");
+        headers.add("X-Filename", nomeFile);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(out -> zipFattureService.scriviZip(mese, anno, parte, out));
+    }
+
     @GetMapping(value = "/{numeroFattura}/pdf")
     public ResponseEntity<InputStreamResource> getFatturaPdf(@PathVariable String numeroFattura) throws IOException {
         Fattura fattura = fatturaService.findByNumeroFattura(numeroFattura);
         return download(fattura.getPdf(), MediaType.APPLICATION_PDF);
     }
 
+    /**
+     * Solo per le fatture generate con Excel: quelle nuove hanno soltanto il pdf (404).
+     */
     @GetMapping(value = "/{numeroFattura}/xlsx")
     public ResponseEntity<InputStreamResource> getFatturaXlsx(@PathVariable String numeroFattura) throws IOException {
         Fattura fattura = fatturaService.findByNumeroFattura(numeroFattura);
@@ -118,6 +156,7 @@ public class FatturaController {
      */
     private ResponseEntity<InputStreamResource> download(String src, MediaType tipo) throws IOException {
         log.debug("File da scaricare: {}", src);
+        if (src == null || !Files.isRegularFile(Path.of(src))) throw new NotFoundException("File della fattura non trovato");
         String nomeFile = Path.of(src).getFileName().toString();
         InputStreamResource resource = new InputStreamResource(new FileInputStream(src));
 

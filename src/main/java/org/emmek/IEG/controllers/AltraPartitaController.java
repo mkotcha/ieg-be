@@ -51,6 +51,15 @@ public class AltraPartitaController {
         return altraPartitaService.update(id, body);
     }
 
+    /**
+     * Attiva o disattiva la partita: quelle disattivate non vanno in fattura (vale per le fatture calcolate dopo).
+     */
+    @PutMapping("/{id}/attiva")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public AltraPartita setAttiva(@PathVariable Long id, @RequestParam boolean attiva) {
+        return altraPartitaService.setAttiva(id, attiva);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasAuthority('ADMIN')")

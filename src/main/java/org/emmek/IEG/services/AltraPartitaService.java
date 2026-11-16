@@ -54,6 +54,15 @@ public class AltraPartitaService {
         return altraPartitaRepository.save(altraPartita);
     }
 
+    /**
+     * Attiva o disattiva la partita: quelle disattivate restano in archivio ma non vanno in fattura.
+     */
+    public AltraPartita setAttiva(Long id, boolean attiva) {
+        AltraPartita altraPartita = findById(id);
+        altraPartita.setAttiva(attiva);
+        return altraPartitaRepository.save(altraPartita);
+    }
+
     public void delete(Long id) {
         altraPartitaRepository.delete(findById(id));
     }

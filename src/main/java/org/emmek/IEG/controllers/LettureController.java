@@ -109,6 +109,15 @@ public class LettureController {
     }
 
     /**
+     * Attiva o disattiva una lettura: quelle disattivate restano in archivio ma non entrano nei calcoli.
+     */
+    @PutMapping("/{id}/attiva")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Lettura setAttiva(@PathVariable Long id, @RequestParam boolean attiva) {
+        return letturaService.setAttiva(id, attiva);
+    }
+
+    /**
      * Letture di tutte le forniture che la generazione massiva fatturerebbe per il mese di consumo, con lo stesso
      * periodo del calcolo della fattura e i problemi trovati (letture mancanti, fattura non calcolabile...).
      */

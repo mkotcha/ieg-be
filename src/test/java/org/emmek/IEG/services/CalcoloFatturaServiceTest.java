@@ -155,7 +155,7 @@ class CalcoloFatturaServiceTest {
         assertEquals(0.0, voce.getIva());
     }
 
-    private static FatturaSingola fatturaDiEsempio() {
+    static FatturaSingola fatturaDiEsempio() {
         Offerta offerta = new Offerta();
         offerta.setPun(true);
         offerta.setHasSpread(true);
@@ -220,7 +220,7 @@ class CalcoloFatturaServiceTest {
         return fs;
     }
 
-    private static Pun punDiEsempio() {
+    static Pun punDiEsempio() {
         Pun pun = new Pun();
         pun.setF1(0.238375);
         pun.setF2(0.258289);

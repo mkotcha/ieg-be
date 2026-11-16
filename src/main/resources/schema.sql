@@ -150,6 +150,8 @@ CREATE TABLE letture (
     fornitura_pod character varying(255) NOT NULL,
     data_lettura date NOT NULL,
     is_utile boolean,
+    attiva boolean NOT NULL DEFAULT true,
+    manuale boolean NOT NULL DEFAULT false,
     validato character varying(255),
     tipo_dato character varying(255),
     tipo_lettura character varying(255) NOT NULL,
@@ -256,6 +258,7 @@ CREATE TABLE altre_partite (
     voce character varying(255) NOT NULL,
     importo Double precision NOT NULL,
     esente_iva boolean NOT NULL DEFAULT true,
+    attiva boolean NOT NULL DEFAULT true,
     mese integer NOT NULL,
     anno integer NOT NULL
 );
