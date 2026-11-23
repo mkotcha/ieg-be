@@ -37,7 +37,7 @@ public class ExceptionsHandler {
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public ErrorsResponseDTO handleAccessDenied(AccessDeniedException e) {
-        return new ErrorsResponseDTO(e.getMessage(), new Date());
+        return new ErrorsResponseDTO("Operazione riservata agli amministratori", new Date());
     }
 
     @ExceptionHandler(NotFoundException.class)

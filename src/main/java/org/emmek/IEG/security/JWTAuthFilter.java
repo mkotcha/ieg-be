@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.emmek.IEG.entities.Utente;
+import org.emmek.IEG.exceptions.NotFoundException;
 import org.emmek.IEG.exceptions.UnauthorizedException;
 import org.emmek.IEG.services.UtenteService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,12 @@ public class JWTAuthFilter extends OncePerRequestFilter {
             String token = authHeader.substring(7);
             jwtTools.verifyToken(token);
             String id = jwtTools.extractIdFromToken(token);
-            Utente currentUtente = utenteService.findById(Long.parseLong(id));
+            Utente currentUtente;
+            try {
+                currentUtente = utenteService.findById(Long.parseLong(id));
+            } catch (NotFoundException e) {
+                throw new UnauthorizedException("utente non più esistente, rifai il login");
+            }
             Authentication authentication = new UsernamePasswordAuthenticationToken(currentUtente, null, currentUtente.getAuthorities());
             SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
