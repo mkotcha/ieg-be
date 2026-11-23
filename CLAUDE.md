@@ -24,10 +24,20 @@ Linux and Windows.
 ./mvnw package                  # build jar
 ```
 
-Runtime files live in `volume/` (gitignored): `env.properties`, `data/` (bootstrap `.xlsx`, `data/uploads`),
+Runtime files live in a gitignored working directory: `env.properties`, `data/` (bootstrap `.xlsx`, `data/uploads`),
 `fatture/` (generated PDFs) and `log/`. All code paths below (`data/…`, `fatture/…`, `log/ieg.log`,
-`file:env.properties`) are relative to the working directory, which is `volume/`: `spring-boot:run` is configured so in
-`pom.xml` (`workingDirectory`), and an IDE run configuration must set it too.
+`file:env.properties`) are relative to the working directory. There are two, so dev and prod can run side by side:
+
+| | working dir | port | database |
+|---|---|---|---|
+| prod (container `ieg-be`) | `volume/` | 8080 | `ieg-2.1` (default of `DB_NAME`) |
+| dev (`./mvnw spring-boot:run`) | `volume-dev/` | 8081 | `ieg-dev` |
+
+Port and database come from `PORT_SERVER` and `DB_NAME` in each folder's `env.properties`. `spring-boot:run` uses
+`volume-dev/` (`workingDirectory` in `pom.xml`); an IDE run configuration must set it too. The frontend's Vite proxy
+targets 8081. `ieg-dev` is a copy of prod, refreshable with
+`podman exec postgres sh -c 'dropdb -U postgres ieg-dev && createdb -U postgres ieg-dev && pg_dump -U postgres -Fc ieg-2.1 | pg_restore -U postgres -d ieg-dev --no-owner'`.
+Schema changes (`schema.sql`, see below) must be applied to both databases.
 
 Deployment: `Dockerfile` builds the image (`podman build -t ieg-be .`; it includes `postgresql-client-18` for
 `/api/db/dump`), run by the user quadlet `~/.config/containers/systemd/ieg-be.container` (`Network=host`, port 8080,

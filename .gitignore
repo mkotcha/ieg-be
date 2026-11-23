@@ -32,12 +32,13 @@ build/
 ### VS Code ###
 .vscode/
 
-### dati di runtime (env.properties, data/, fatture/, log/): vedi Dockerfile ###
+### dati di runtime (env.properties, data/, fatture/, log/) di prod e dev: vedi CLAUDE.md ###
 env.properties
 **/*.log*
 *.xlsx
 *.xlsb
 /volume/
+/volume-dev/
 
 
 ### Python ###
