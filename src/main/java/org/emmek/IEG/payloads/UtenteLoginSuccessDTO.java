@@ -1,4 +1,4 @@
 package org.emmek.IEG.payloads;
 
-public record UtenteLoginSuccessDTO(String accessToken) {
+public record UtenteLoginSuccessDTO(String accessToken, String ruolo) {
 }

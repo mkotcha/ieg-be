@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Entity
 @Table(name = "utenti")
 @NoArgsConstructor
-@JsonIgnoreProperties({"password", "authorities", "enabled", "credentialsNonExpired", "accountNonExpired", "accountNonLocked"})
+@JsonIgnoreProperties({"password", "authorities", "enabled", "credentialsNonExpired", "accountNonExpired", "accountNonLocked", "ruolo"})
 public class Utente implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -84,6 +84,24 @@ public class Utente implements UserDetails {
         return true;
     }
 
+
+    /**
+     * Il ruolo dell'utente: ADMIN (tutto) o USER (sola lettura). Un utente ha un solo ruolo; se per qualche motivo ne
+     * ha più d'uno vale ADMIN.
+     */
+    public String getRuolo() {
+        if (ruoli == null || ruoli.isEmpty()) return null;
+        return ruoli.stream().map(Ruolo::getRuolo).anyMatch("ADMIN"::equals) ? "ADMIN"
+                : ruoli.iterator().next().getRuolo();
+    }
+
+    public void setRuolo(Ruolo ruolo) {
+        if (this.ruoli == null) {
+            this.ruoli = new HashSet<>();
+        }
+        this.ruoli.clear();
+        this.ruoli.add(ruolo);
+    }
 
     public void addRuolo(Ruolo ruolo) {
         if (this.ruoli == null) {

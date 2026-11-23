@@ -87,9 +87,16 @@ Standard layered Spring MVC structure under `src/main/java/org/emmek/IEG/`:
   distributor's XML meter-reading flow format.
 - `model/excel/` — Poiji-annotated model classes (`ClienteModel`, `FornituraModel`, `LetturaModel`, `OffertaModel`,
   `OneriModel`, `DispacciamentoModel`) mapping the bootstrap `.xlsx` import files under `data/`.
-- `security/` — stateless JWT auth: `JWTAuthFilter` (reads `Authorization: Bearer`, populates `SecurityContextHolder`),
-  `JWTTools` (sign/verify), `SecurityConfig` (CORS, CSRF disabled, `@EnableMethodSecurity` — most write endpoints are
-  gated with `@PreAuthorize("hasAuthority('ADMIN')")`).
+- `security/` — stateless JWT auth: `JWTAuthFilter` (reads `Authorization: Bearer`, populates `SecurityContextHolder`;
+  the user is reloaded on every request, so role changes apply at once), `JWTTools` (sign/verify), `SecurityConfig`
+  (CORS, CSRF disabled). Two roles: `ADMIN` (everything) and `USER` (read-only). The rule is central in
+  `SecurityConfig`: any GET under `/api` needs a login, any other method needs `ADMIN`, so a new write endpoint is
+  closed even without `@PreAuthorize`; GETs with side effects or sensitive data (`/api/clienti/*/fattura`, which
+  recomputes and overwrites the invoice, `/api/db/**`) and `/api/utenti/**` are `ADMIN` too, except `/api/utenti/me`
+  (profile, own password change). Add new side-effecting GETs there. The `@PreAuthorize` annotations on controllers
+  are kept as documentation. No public registration: an ADMIN creates users with `POST /api/utenti` (`UtenteService`:
+  one role per user, you can't delete yourself or drop your own ADMIN role, at least one ADMIN must remain). Login
+  (`POST /auth/login`) returns the token and the role; the FE can also use `GET /api/utenti/me`.
 - `exceptions/` — `@RestControllerAdvice` (`ExceptionsHandler`) mapping domain exceptions (`BadRequestException`,
   `NotFoundException`, `UnauthorizedException`) plus generic `RuntimeException`/framework exceptions to JSON error
   responses; `ExceptionsHandlerFilter` runs before `JWTAuthFilter` in the filter chain to translate exceptions thrown

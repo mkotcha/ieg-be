@@ -25,6 +25,7 @@ public class OneriController {
     }
 
     @PostMapping("")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public Oneri save(@RequestBody @Validated OneriDTO body, BindingResult validation) {
         return oneriService.save(body);

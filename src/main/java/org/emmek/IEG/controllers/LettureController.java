@@ -78,6 +78,7 @@ public class LettureController {
     }
 
     @PostMapping("")
+    @PreAuthorize("hasAuthority('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)
     public Lettura save(@RequestBody @Validated LetturaDTO body, BindingResult validation) {
         if (validation.hasErrors()) {

@@ -42,6 +42,7 @@ public class ClienteController {
 
 
     @GetMapping("/{id}/fattura")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public Fattura setFattura(@PathVariable Long id,
                               @RequestParam(required = false) Integer mese,
                               @RequestParam(required = false) Integer anno) throws IOException {
