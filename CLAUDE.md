@@ -24,6 +24,32 @@ Linux and Windows.
 ./mvnw package                  # build jar
 ```
 
+Runtime files live in a gitignored working directory: `env.properties`, `data/` (bootstrap `.xlsx`, `data/uploads`),
+`fatture/` (generated PDFs) and `log/`. All code paths below (`data/…`, `fatture/…`, `log/ieg.log`,
+`file:env.properties`) are relative to the working directory. There are two, so dev and prod can run side by side:
+
+| | working dir | port | database |
+|---|---|---|---|
+| prod (container `ieg-be`) | `volume/` | 8080 | `ieg-2.1` (default of `DB_NAME`) |
+| dev (`./mvnw spring-boot:run`) | `volume-dev/` | 8081 | `ieg-dev` |
+
+Port and database come from `PORT_SERVER` and `DB_NAME` in each folder's `env.properties`. `spring-boot:run` uses
+`volume-dev/` (`workingDirectory` in `pom.xml`); an IDE run configuration must set it too. The frontend's Vite proxy
+targets 8081. `ieg-dev` is a copy of prod, refreshable with
+`podman exec postgres sh -c 'dropdb -U postgres ieg-dev && createdb -U postgres ieg-dev && pg_dump -U postgres -Fc ieg-2.1 | pg_restore -U postgres -d ieg-dev --no-owner'`.
+Schema changes (`schema.sql`, see below) must be applied to both databases.
+
+Deployment: **prod follows `main` on GitHub** (both `ieg-be` and `ieg-fe`). `deploy/ieg-deploy.sh`, run every 5
+minutes by the user timer `ieg-deploy.timer`, fetches `origin/main` into its own clones under `~/.local/share/ieg/src/`
+(never from `~/dev`) and, for each repo whose commit changed: builds the image from `Dockerfile` (includes
+`postgresql-client-18` for `/api/db/dump`) and restarts the quadlet `ieg-be` (`deploy/ieg-be.container`: `Network=host`,
+port 8080, `volume/` mounted as the working dir `/app/volume`, `DB_DUMP_COMANDO=pg_dump`); or builds the frontend in a
+Node container (env from `~/.config/ieg/frontend.env`) and rsyncs `dist/` to `~/.local/share/ieg/www`. Caddy
+(`~/.config/caddy/Caddyfile`) serves that folder and proxies `/api` and `/auth` to 8080 at `ieg.emmek.org`, exposed via
+the shared Cloudflare tunnel. Published commits are in `~/.local/share/ieg/deployed/`; logs:
+`journalctl --user -u ieg-deploy`; manual run: `ieg-deploy.sh [--force]`. After changing anything in `deploy/`, rerun
+`deploy/install.sh` (copies script, units and quadlet into place).
+
 Configuration lives in `src/main/resources/application.properties`, which imports `env.properties` (gitignored, not
 committed) for secrets: `PG_PASSWORD`, `JWT_SECRET`, `CLOUDINARY_*`, `SENDGRID_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_*`,
 `SECURITY_PASSWORD`, `PORT_SERVER`, and optionally `DB_DUMP_COMANDO` (the pg_dump command used by `GET /api/db/dump`, default `pg_dump`; e.g. `podman exec -e PGPASSWORD postgres pg_dump` when pg_dump only exists in the Postgres container). A local `env.properties` file must exist (with these keys) before the app will

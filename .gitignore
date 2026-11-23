@@ -32,13 +32,13 @@ build/
 ### VS Code ###
 .vscode/
 
-### OS ###
+### dati di runtime (env.properties, data/, fatture/, log/) di prod e dev: vedi CLAUDE.md ###
 env.properties
 **/*.log*
-/data/**
 *.xlsx
 *.xlsb
-/fatture/**
+/volume/
+/volume-dev/
 
 
 ### Python ###

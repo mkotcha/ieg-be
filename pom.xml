@@ -157,6 +157,9 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!-- spring-boot:run è il backend di sviluppo: parte da volume-dev/ (porta 8081, db ieg-dev);
+                         prod (container ieg-be) usa volume/ -->
+                    <workingDirectory>${project.basedir}/volume-dev</workingDirectory>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

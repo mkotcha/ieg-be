@@ -1,0 +1,9 @@
+[Unit]
+Description=IEG: allinea prod a main su GitHub (immagine ieg-be e build di ieg-fe)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/ieg-deploy.sh
+TimeoutStartSec=1800
