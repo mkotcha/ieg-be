@@ -39,11 +39,16 @@ targets 8081. `ieg-dev` is a copy of prod, refreshable with
 `podman exec postgres sh -c 'dropdb -U postgres ieg-dev && createdb -U postgres ieg-dev && pg_dump -U postgres -Fc ieg-2.1 | pg_restore -U postgres -d ieg-dev --no-owner'`.
 Schema changes (`schema.sql`, see below) must be applied to both databases.
 
-Deployment: `Dockerfile` builds the image (`podman build -t ieg-be .`; it includes `postgresql-client-18` for
-`/api/db/dump`), run by the user quadlet `~/.config/containers/systemd/ieg-be.container` (`Network=host`, port 8080,
-`volume/` mounted as the working dir `/app/volume`, `DB_DUMP_COMANDO=pg_dump`). Caddy (`~/.config/caddy/Caddyfile`)
-serves the frontend build and proxies `/api` and `/auth` to it at `ieg.emmek.org`, exposed via the shared Cloudflare
-tunnel. Redeploy: `podman build -t ieg-be . && systemctl --user restart ieg-be`.
+Deployment: **prod follows `main` on GitHub** (both `ieg-be` and `ieg-fe`). `deploy/ieg-deploy.sh`, run every 5
+minutes by the user timer `ieg-deploy.timer`, fetches `origin/main` into its own clones under `~/.local/share/ieg/src/`
+(never from `~/dev`) and, for each repo whose commit changed: builds the image from `Dockerfile` (includes
+`postgresql-client-18` for `/api/db/dump`) and restarts the quadlet `ieg-be` (`deploy/ieg-be.container`: `Network=host`,
+port 8080, `volume/` mounted as the working dir `/app/volume`, `DB_DUMP_COMANDO=pg_dump`); or builds the frontend in a
+Node container (env from `~/.config/ieg/frontend.env`) and rsyncs `dist/` to `~/.local/share/ieg/www`. Caddy
+(`~/.config/caddy/Caddyfile`) serves that folder and proxies `/api` and `/auth` to 8080 at `ieg.emmek.org`, exposed via
+the shared Cloudflare tunnel. Published commits are in `~/.local/share/ieg/deployed/`; logs:
+`journalctl --user -u ieg-deploy`; manual run: `ieg-deploy.sh [--force]`. After changing anything in `deploy/`, rerun
+`deploy/install.sh` (copies script, units and quadlet into place).
 
 Configuration lives in `src/main/resources/application.properties`, which imports `env.properties` (gitignored, not
 committed) for secrets: `PG_PASSWORD`, `JWT_SECRET`, `CLOUDINARY_*`, `SENDGRID_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_*`,

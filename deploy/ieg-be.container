@@ -1,0 +1,22 @@
+[Unit]
+Description=IEG backend (Spring Boot, porta 8080; dati in ~/dev/ieg-be/volume)
+Wants=postgres.service
+After=postgres.service
+
+[Container]
+ContainerName=ieg-be
+Image=localhost/ieg-be:latest
+Network=host
+UserNS=keep-id
+SecurityLabelDisable=true
+# cartella di lavoro dell'app: env.properties, data/, fatture/, log/
+Volume=/home/kutch/dev/ieg-be/volume:/app/volume
+# vince su env.properties (lì è il comando per pg_dump nel container postgres, che da qui non si raggiunge)
+Environment=DB_DUMP_COMANDO=pg_dump
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target
