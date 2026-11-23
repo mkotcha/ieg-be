@@ -48,7 +48,8 @@ Node container (env from `~/.config/ieg/frontend.env`) and rsyncs `dist/` to `~/
 (`~/.config/caddy/Caddyfile`) serves that folder and proxies `/api` and `/auth` to 8080 at `ieg.emmek.org`, exposed via
 the shared Cloudflare tunnel. Published commits are in `~/.local/share/ieg/deployed/`; logs:
 `journalctl --user -u ieg-deploy`; manual run: `ieg-deploy.sh [--force]`. After changing anything in `deploy/`, rerun
-`deploy/install.sh` (copies script, units and quadlet into place).
+`deploy/install.sh` (copies script, units and quadlet into place). Human-facing docs (commands, paths, rollback,
+install from scratch): `deploy/README.md`; keep it in sync when changing the deploy.
 
 Configuration lives in `src/main/resources/application.properties`, which imports `env.properties` (gitignored, not
 committed) for secrets: `PG_PASSWORD`, `JWT_SECRET`, `CLOUDINARY_*`, `SENDGRID_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_*`,
