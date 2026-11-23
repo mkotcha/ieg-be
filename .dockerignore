@@ -1,0 +1,11 @@
+# nell'immagine entrano solo pom.xml e src/: segreti e dati restano fuori
+volume/
+env.properties
+template/
+target/
+log/
+data/
+fatture/
+.git/
+.idea/
+*.iml

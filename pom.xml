@@ -157,6 +157,8 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!-- spring-boot:run parte da volume/ (env.properties, data/, fatture/, log/), come il container -->
+                    <workingDirectory>${project.basedir}/volume</workingDirectory>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>

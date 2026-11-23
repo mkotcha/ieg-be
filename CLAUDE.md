@@ -24,6 +24,17 @@ Linux and Windows.
 ./mvnw package                  # build jar
 ```
 
+Runtime files live in `volume/` (gitignored): `env.properties`, `data/` (bootstrap `.xlsx`, `data/uploads`),
+`fatture/` (generated PDFs) and `log/`. All code paths below (`data/…`, `fatture/…`, `log/ieg.log`,
+`file:env.properties`) are relative to the working directory, which is `volume/`: `spring-boot:run` is configured so in
+`pom.xml` (`workingDirectory`), and an IDE run configuration must set it too.
+
+Deployment: `Dockerfile` builds the image (`podman build -t ieg-be .`; it includes `postgresql-client-18` for
+`/api/db/dump`), run by the user quadlet `~/.config/containers/systemd/ieg-be.container` (`Network=host`, port 8080,
+`volume/` mounted as the working dir `/app/volume`, `DB_DUMP_COMANDO=pg_dump`). Caddy (`~/.config/caddy/Caddyfile`)
+serves the frontend build and proxies `/api` and `/auth` to it at `ieg.emmek.org`, exposed via the shared Cloudflare
+tunnel. Redeploy: `podman build -t ieg-be . && systemctl --user restart ieg-be`.
+
 Configuration lives in `src/main/resources/application.properties`, which imports `env.properties` (gitignored, not
 committed) for secrets: `PG_PASSWORD`, `JWT_SECRET`, `CLOUDINARY_*`, `SENDGRID_*`, `CORS_ALLOWED_ORIGINS`, `ADMIN_*`,
 `SECURITY_PASSWORD`, `PORT_SERVER`, and optionally `DB_DUMP_COMANDO` (the pg_dump command used by `GET /api/db/dump`, default `pg_dump`; e.g. `podman exec -e PGPASSWORD postgres pg_dump` when pg_dump only exists in the Postgres container). A local `env.properties` file must exist (with these keys) before the app will
