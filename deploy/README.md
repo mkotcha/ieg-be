@@ -24,10 +24,44 @@ git switch main && git pull --ff-only && git merge develop && git push && git sw
 | log dei deploy | `journalctl --user -u ieg-deploy` (`-f` per seguirlo) |
 | commit pubblicati | `cat ~/.local/share/ieg/deployed/*` |
 | prossimo controllo del timer | `systemctl --user list-timers ieg-deploy.timer` |
-| sospendere / riattivare il deploy automatico | `systemctl --user disable --now ieg-deploy.timer` / `enable --now` |
+| fermare / riattivare il deploy automatico | vedi [sotto](#fermare-il-deploy-automatico) |
 | stato dei servizi | `systemctl --user status ieg-be caddy cloudflare-tunnel` |
 | log del backend | `podman logs -f ieg-be` (anche `~/dev/ieg-be/volume/log/ieg.log`) |
 | riavviare il backend | `systemctl --user restart ieg-be` |
+
+### Fermare il deploy automatico
+
+Il timer è quello che controlla `main` ogni 5 minuti: fermandolo prod resta com'è (backend e sito continuano a
+girare), semplicemente i push su `main` non vengono più pubblicati finché non lo si riattiva.
+
+```
+# fermarlo fino al prossimo riavvio della macchina (al boot riparte da solo)
+systemctl --user stop ieg-deploy.timer
+
+# fermarlo in modo permanente (resta spento anche dopo un riavvio)
+systemctl --user disable --now ieg-deploy.timer
+
+# interrompere un deploy in corso (il commit non viene segnato come pubblicato)
+systemctl --user stop ieg-deploy.service
+
+# verificare: "inactive" / "disabled" = fermo
+systemctl --user is-active ieg-deploy.timer
+systemctl --user is-enabled ieg-deploy.timer
+
+# riattivarlo (se nel frattempo main è cambiato, lo pubblica entro 5 minuti)
+systemctl --user enable --now ieg-deploy.timer
+```
+
+Con il timer fermo si può comunque pubblicare a mano: `systemctl --user start ieg-deploy` (un solo giro).
+
+Interrompere un deploy a metà build del backend lascia in funzione il container di prima; a metà build del frontend
+il sito resta com'era (la copia in `www/` si fa solo a build finita). Se lo si interrompe subito dopo il restart di
+`ieg-be`, il backend è già quello nuovo ma il commit non risulta pubblicato: al giro successivo viene rifatto.
+
+Per spegnere proprio prod (backend fermo, il sito risponde ma le chiamate alle API falliscono):
+`systemctl --user disable --now ieg-deploy.timer && systemctl --user stop ieg-be`. Il quadlet `ieg-be` riparte
+comunque al boot: per tenerlo spento anche dopo un riavvio va tolto o commentato `WantedBy=default.target` in
+`~/.config/containers/systemd/ieg-be.container`, poi `systemctl --user daemon-reload`.
 
 **Tornare a una versione precedente:** il deploy pubblica sempre la punta di `main`, quindi si fa
 `git revert` del commit sbagliato su `main` e push. Il timer pubblica la versione corretta al giro successivo.
