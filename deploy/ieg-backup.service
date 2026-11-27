@@ -1,0 +1,9 @@
+# Backup cifrato di IEG (database + volume/). Installazione: vedi deploy/install-backup.sh
+[Unit]
+Description=Backup cifrato di IEG (database ieg-2.1 e cartella volume)
+Wants=postgres.service
+After=postgres.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/dev/ieg-be/deploy/backup.sh

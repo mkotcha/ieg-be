@@ -1,0 +1,11 @@
+[Unit]
+Description=Backup notturno di IEG
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+# se la macchina era spenta alle 3:00, il backup parte appena si riaccende
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
